@@ -4,5 +4,5 @@ interface WeatherRequestService {
 
     suspend fun getWeather(): List<WeatherResponse>
 
-    suspend fun getCoordinates(cityName:String,countryCode:String): CoordinateResponse
+    suspend fun getCoordinates(cityName:String): List<CoordinateResponseItem>
 }

@@ -33,6 +33,7 @@ object AppModule {
             install(ContentNegotiation) {
                 json(Json { ignoreUnknownKeys = true })
             }
+
             install(HttpTimeout) {
                 requestTimeoutMillis = 20000L
                 connectTimeoutMillis = 10000L

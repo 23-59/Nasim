@@ -576,7 +576,7 @@ fun MainWeatherInfoSection(
             })
         Text(
             text = weatherStatus,
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
             modifier = modifier.constrainAs(tempStatusPosition) {
                 top.linkTo(weatherIconPosition.bottom, 4.dp)

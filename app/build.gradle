@@ -53,15 +53,16 @@ android {
 dependencies {
     implementation libs.hilt.android
     ksp libs.hilt.compiler
+    implementation libs.androidx.hilt.navigation.compose
     implementation libs.androidx.datastore.preferences
     implementation(libs.coil.compose)
-    def ktorVersion = '3.0.0'
+    def ktorVersion = '3.0.1'
     implementation(libs.ktor.client.android)
     implementation("io.ktor:ktor-client-core:$ktorVersion")
     implementation libs.ktor.client.serialization
     implementation("io.ktor:ktor-client-logging:$ktorVersion")
-    implementation "io.ktor:ktor-serialization-kotlinx-json:3.0.0"
-    implementation "io.ktor:ktor-client-content-negotiation:3.0.0"
+    implementation libs.ktor.serialization.kotlinx.json
+    implementation libs.ktor.client.content.negotiation
 
     def room_version = "2.6.1"
     implementation libs.androidx.navigation.compose
