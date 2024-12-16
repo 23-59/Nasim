@@ -12,12 +12,12 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Nasim"
+        android:theme="@style/Theme.Nasim.Starting"
         >
         <activity
             android:name=".presentation.main.MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.Nasim" >
+            android:theme="@style/Theme.Nasim.Starting" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

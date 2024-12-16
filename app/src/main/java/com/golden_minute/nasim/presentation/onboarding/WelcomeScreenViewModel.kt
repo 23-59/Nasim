@@ -2,59 +2,63 @@ package com.golden_minute.nasim.presentation.onboarding
 
 import android.app.Application
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
-import androidx.compose.runtime.toMutableStateList
-import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.golden_minute.nasim.data.data_store.CoordinateDataStore
-import com.golden_minute.nasim.domain.CoordinateResponse
-import com.golden_minute.nasim.domain.CoordinateResponseItem
+import com.golden_minute.nasim.domain.CoordinateResponseType
+import com.golden_minute.nasim.domain.model.coordinate_response.CoordinateResponseItem
 import com.golden_minute.nasim.domain.use_case.AppUseCases
-import com.golden_minute.nasim.domain.use_case.GetCoordinate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
 private const val TAG = "WelcomeScreenViewModel"
 
 @HiltViewModel
 class WelcomeScreenViewModel @Inject constructor(
-    app: Application,
+    private val app: Application,
     private val useCases: AppUseCases,
     private val coordinateDataStore: CoordinateDataStore
 ) : AndroidViewModel(app) {
-
-
     private var _searchValue = mutableStateOf("")
     val searchValue: State<String> = _searchValue
 
-    private var _selectedCoordinate = mutableStateOf(CoordinateResponseItem())
-    val selectedCoordinate: State<CoordinateResponseItem> = _selectedCoordinate
-
-     private var _coordinates = mutableStateListOf<CoordinateResponseItem>()
+    private var _coordinates = mutableStateListOf<CoordinateResponseItem>()
     val coordinates: SnapshotStateList<CoordinateResponseItem> = _coordinates
 
-    private var _selectedItem = mutableStateOf(Pair(0f,0f))
-    val selectedItem: State<Pair<Float,Float>> = _selectedItem
+
+    private var _selectedItem = mutableStateOf(Pair(0.0, 0.0))
+    val selectedItem: State<Pair<Double, Double>> = _selectedItem
 
 
     fun onEvent(event: WelcomeScreenEvents) {
         when (event) {
             is WelcomeScreenEvents.OnSearchValueChanges -> {
                 viewModelScope.launch {
-                    _selectedItem.value = Pair(0f,0f)
+                    _selectedItem.value = Pair(0.0, 0.0)
                     _searchValue.value = event.searchValue
-                     if (event.searchValue.isNotBlank()){
-                         val newCoordinates = useCases.getCoordinate(event.searchValue).toMutableStateList()
-                        _coordinates.clear()
-                        _coordinates.addAll(newCoordinates)
-                    }
-                    else _coordinates.clear()
 
+                    when (val result = useCases.getCoordinate(event.searchValue)) {
+
+                        is CoordinateResponseType.Error -> Toast.makeText(
+                            app.baseContext,
+                            result.error,
+                            Toast.LENGTH_SHORT
+                        ).show()
+
+                        is CoordinateResponseType.OK -> {
+                            if (event.searchValue.isNotBlank()) {
+                                _coordinates.clear()
+                                _coordinates.addAll(result.places)
+                            } else _coordinates.clear()
+                        }
+                    }
 
                     Log.i(TAG, "onEvent: ")
                 }
@@ -62,15 +66,16 @@ class WelcomeScreenViewModel @Inject constructor(
 
             WelcomeScreenEvents.SaveData -> {
                 viewModelScope.launch(Dispatchers.IO) {
-                    coordinateDataStore.saveLatitude(selectedItem.value.first.toString())
-                    coordinateDataStore.saveLongitude(selectedItem.value.second.toString())
+                    coordinateDataStore.saveLatitude(selectedItem.value.first)
+                    coordinateDataStore.saveLongitude(selectedItem.value.second)
                 }
             }
 
-            is WelcomeScreenEvents.OnSelectItem -> {
-                Log.i(TAG, "onEvent: ")
-                _selectedItem.value =Pair(event.lat,event.lon)
-            }
+            is WelcomeScreenEvents.OnSelectItem -> _selectedItem.value = Pair(event.lat, event.lon)
+
         }
     }
 }
+
+
+

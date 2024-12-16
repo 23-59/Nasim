@@ -29,6 +29,7 @@ object AppModule {
         return HttpClient(Android) {
             install(Logging) {
                 level = LogLevel.ALL
+
             }
             install(ContentNegotiation) {
                 json(Json { ignoreUnknownKeys = true })

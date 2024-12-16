@@ -2,7 +2,7 @@ package com.golden_minute.nasim.domain
 
 interface WeatherRequestService {
 
-    suspend fun getWeather(): List<WeatherResponse>
+    suspend fun getWeather(days:Int): WeatherResponseType
 
-    suspend fun getCoordinates(cityName:String): List<CoordinateResponseItem>
+    suspend fun getCoordinates(cityName:String): CoordinateResponseType
 }

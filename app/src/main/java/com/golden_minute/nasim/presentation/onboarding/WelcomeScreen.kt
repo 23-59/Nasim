@@ -1,6 +1,5 @@
 package com.golden_minute.nasim.presentation.onboarding
 
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
@@ -45,13 +44,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Devices
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.golden_minute.nasim.R
+import com.golden_minute.nasim.presentation.utils.DestinationRoutes
 import com.golden_minute.nasim.ui.theme.NasimTheme
-import com.golden_minute.nasim.ui.theme.nunito
+import com.golden_minute.nasim.ui.theme.fontFamily
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.haze
@@ -61,7 +60,8 @@ import dev.chrisbanes.haze.hazeChild
 @Composable
 fun WelcomeScreen(
     modifier: Modifier = Modifier,
-    viewModel: WelcomeScreenViewModel = hiltViewModel()
+    viewModel: WelcomeScreenViewModel = hiltViewModel(),
+    navController:NavController
 ) {
     val hazeState = remember { HazeState() }
     NasimTheme {
@@ -69,22 +69,16 @@ fun WelcomeScreen(
             Image(
                 modifier = Modifier
                     .fillMaxSize()
-                    .haze(
-                        state = hazeState,
-                        style = HazeStyle(
-                            noiseFactor = 0f,
-                            tint = Color.Black.copy(0.2f),
-                            blurRadius = 30.dp
-                        )
-                    ),
-                painter = painterResource(R.drawable.resource_abstract),
+                    .haze(state = hazeState),
+                painter = painterResource(R.drawable.clear_sky),
                 contentDescription = "background image",
                 contentScale = ContentScale.Crop
             )
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .hazeChild(hazeState), horizontalAlignment = Alignment.CenterHorizontally
+                    .hazeChild(hazeState, style = HazeStyle(noiseFactor = 0f))
+                , horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Spacer(
                     Modifier.height(
@@ -101,14 +95,14 @@ fun WelcomeScreen(
                     "Welcome to The Nasim",
                     style = MaterialTheme.typography.headlineMedium,
                     color = Color.White,
-                    fontFamily = nunito,
+                    fontFamily = fontFamily,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.height(32.dp))
                 Text(
                     "Select Your Location :",
                     style = MaterialTheme.typography.titleLarge,
-                    fontFamily = nunito,
+                    fontFamily = fontFamily,
                     color = Color.White,
                     modifier = modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center
@@ -172,7 +166,7 @@ fun WelcomeScreen(
                                 shape = RoundedCornerShape(20.dp)
                             )
                             .clip(RoundedCornerShape(20.dp))
-                            .hazeChild(state = hazeState, style = HazeStyle(noiseFactor = 0f))
+                            .hazeChild(state = hazeState)
                             .background(
                                 brush = Brush.verticalGradient(
                                     listOf(
@@ -182,41 +176,34 @@ fun WelcomeScreen(
                                 )
                             )
                     ) {
-                        items(items = viewModel.coordinates, key = { it.lat!! }) { coordinateItem ->
-                            Log.i("Test", "WelcomeScreen: ")
-                            val fullStateInfo =
-                                if (coordinateItem.state.equals("null")) null else coordinateItem.state
-                            coordinateItem.name?.let {
+                        items(items = viewModel.coordinates, key = { it.lat }) { coordinateItem ->
                                 CityItem(
                                     viewModel = viewModel,
                                     cityName = coordinateItem.name,
-                                    lat = coordinateItem.lat!!,
-                                    lon = coordinateItem.lon!!,
-                                    text = "${coordinateItem.name}${if (fullStateInfo != null) ", $fullStateInfo, " else ","}${coordinateItem.country}"
+                                    lat = coordinateItem.lat,
+                                    lon = coordinateItem.lon,
+                                    text = "${coordinateItem.name}, ${coordinateItem.region}, ${coordinateItem.country}"
                                 ) {
                                     if (coordinateItem.lat == viewModel.selectedItem.value.first)
-                                        viewModel.onEvent(WelcomeScreenEvents.OnSelectItem(0f,0f))
-
+                                        viewModel.onEvent(WelcomeScreenEvents.OnSelectItem(0.0,0.0))
                                     else
-                                    coordinateItem.lat.let { it1 ->
-                                        coordinateItem.lon.let { it2 ->
-                                            WelcomeScreenEvents.OnSelectItem(
-                                                it1, it2
-                                            )
-                                        }
-                                    }.let { it2 -> viewModel.onEvent(it2) }
+                                        viewModel.onEvent(WelcomeScreenEvents.OnSelectItem(coordinateItem.lat,coordinateItem.lon))
+
 
                                 }
-                            }
                         }
 
                     }
                 }
 
                 Spacer(Modifier.height(32.dp))
-                AnimatedVisibility(viewModel.selectedItem.value.first != 0f && viewModel.selectedItem.value.second != 0f) {
+                AnimatedVisibility(viewModel.selectedItem.value.first != 0.0 && viewModel.selectedItem.value.second != 0.0) {
                     Button(
-                        onClick = { },
+                        onClick = {
+                            viewModel.onEvent(WelcomeScreenEvents.SaveData)
+                            navController.popBackStack()
+                            navController.navigate(DestinationRoutes.HOME_SCREEN.route)
+                         },
                         shape = RoundedCornerShape(20.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color.Transparent,
@@ -262,8 +249,8 @@ fun CityItem(
     viewModel: WelcomeScreenViewModel,
     text: String,
     cityName : String,
-    lat:Float,
-    lon:Float,
+    lat:Double,
+    lon:Double,
     onClick: () -> Unit
 ) {
 
@@ -286,7 +273,7 @@ fun CityItem(
         ) {
             Text(
                 text = text,
-                fontFamily = nunito,
+                fontFamily = fontFamily,
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
             )
@@ -308,10 +295,4 @@ fun CityItem(
             HorizontalDivider(color = Color.White.copy(0.5f))
     }
 
-}
-
-@Preview(showSystemUi = true, showBackground = true, device = Devices.PIXEL_7_PRO)
-@Composable
-private fun WelcomeScreenPreview() {
-    WelcomeScreen()
 }

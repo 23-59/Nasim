@@ -3,38 +3,39 @@ package com.golden_minute.nasim.data.data_store
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
-class CoordinateDataStore(private val context: Context, latitude: String = "", longitude: String = "") {
-    private val lat = stringPreferencesKey(latitude)
-    private val lon = stringPreferencesKey(longitude)
+class CoordinateDataStore(private val context: Context) {
+    private val lat = doublePreferencesKey("lat")
+    private val lon = doublePreferencesKey("lon")
 
-    suspend fun saveLatitude(latitude: String) {
+    suspend fun saveLatitude(latitude: Double) {
         context.dataStore.edit {
             it[lat] = latitude
         }
     }
 
-    suspend fun saveLongitude(longitude: String) {
+    suspend fun saveLongitude(longitude: Double) {
         context.dataStore.edit {
             it[lon] = longitude
         }
     }
 
-    suspend fun getLatitude(): String {
-        val pref = context.dataStore.data.first()
-        return pref[lat] ?: ""
+    val getLatitude: Flow<Double> = context.dataStore.data.map {
+        it[lat] ?: 0.0
     }
 
-    suspend fun getLongitude(): String {
-        val pref = context.dataStore.data.first()
-        return pref[lon] ?: ""
+    val getLongitude: Flow<Double> = context.dataStore.data.map {
+        it[lon] ?: 0.0
     }
+
 
 
 }

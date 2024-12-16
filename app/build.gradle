@@ -8,6 +8,14 @@ plugins {
 }
 
 android {
+    signingConfigs {
+        release {
+            storeFile file('C:\\Users\\amirh\\Downloads\\A_23_59.jks')
+            storePassword '@m1rh055e1n'
+            keyAlias '23_59'
+            keyPassword '@m1rh055e1n'
+        }
+    }
     namespace 'com.golden_minute.nasim'
     compileSdk 35
 
@@ -22,12 +30,18 @@ android {
         vectorDrawables {
             useSupportLibrary true
         }
+        signingConfig signingConfigs.release
     }
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            debuggable false
+            signingConfig signingConfigs.release
+            jniDebuggable false
+            renderscriptDebuggable false
+            multiDexEnabled true
         }
     }
     compileOptions {
@@ -48,15 +62,19 @@ android {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
         }
     }
+    buildToolsVersion '35.0.0'
 }
 
 dependencies {
     implementation libs.hilt.android
+    implementation libs.androidx.animation.android
     ksp libs.hilt.compiler
     implementation libs.androidx.hilt.navigation.compose
     implementation libs.androidx.datastore.preferences
+    implementation libs.androidx.core.splashscreen.v120alpha02
+    implementation(libs.kotlinx.datetime)
     implementation(libs.coil.compose)
-    def ktorVersion = '3.0.1'
+    def ktorVersion = '3.0.2'
     implementation(libs.ktor.client.android)
     implementation("io.ktor:ktor-client-core:$ktorVersion")
     implementation libs.ktor.client.serialization
@@ -72,6 +90,7 @@ dependencies {
     annotationProcessor "androidx.room:room-compiler:$room_version"
     ksp "androidx.room:room-compiler:$room_version"
     implementation libs.kotlinx.serialization.json
+    implementation 'com.github.prime-zs.toolkit:core-ktx:2.0.2-alpha'
     implementation(libs.haze.materials)
     implementation(libs.haze)
     implementation libs.androidx.core.ktx

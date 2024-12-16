@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.Nasim.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#2962FF</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/nasim_outline</item>
+        <item name="postSplashScreenTheme">@android:style/Theme.Material.NoActionBar</item>
+    </style>
+
+</resources>

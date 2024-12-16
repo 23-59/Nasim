@@ -8,42 +8,43 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.golden_minute.nasim.R
 
-val nunito = FontFamily(Font(R.font.nunito_regular))
+val fontFamily = FontFamily(Font(R.font.noto_sans))
+val fontFamilyBold = FontFamily(Font(R.font.noto_sans_bold))
 
 // Set of Material typography styles to start with
 
 private val defaultTypography = Typography()
 val Typography = Typography(
     bodyLarge = TextStyle(
-        fontFamily = nunito,
+        fontFamily = fontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 24.sp,
         letterSpacing = 0.5.sp
     ),
     titleLarge = TextStyle(
-        fontFamily = nunito,
+        fontFamily = fontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 22.sp,
         lineHeight = 28.sp,
         letterSpacing = 0.sp
     ),
     labelSmall = TextStyle(
-        fontFamily = nunito,
+        fontFamily = fontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 11.sp,
         lineHeight = 16.sp,
         letterSpacing = 0.5.sp
-    ), headlineSmall = defaultTypography.headlineSmall.copy(fontFamily = nunito),
-    headlineMedium = defaultTypography.headlineMedium.copy(fontFamily = nunito),
-    headlineLarge = defaultTypography.headlineLarge.copy(fontFamily = nunito),
-    displaySmall = defaultTypography.displaySmall.copy(fontFamily = nunito),
-    displayMedium = defaultTypography.displayMedium.copy(fontFamily = nunito),
-    displayLarge = defaultTypography.displayLarge.copy(fontFamily = nunito),
-    titleSmall = defaultTypography.titleSmall.copy(fontFamily = nunito),
-    titleMedium = defaultTypography.titleMedium.copy(fontFamily = nunito),
-    bodySmall = defaultTypography.bodySmall.copy(fontFamily = nunito, letterSpacing = 1.sp),
-    bodyMedium = defaultTypography.bodyMedium.copy(fontFamily = nunito),
+    ), headlineSmall = defaultTypography.headlineSmall.copy(fontFamily = fontFamily),
+    headlineMedium = defaultTypography.headlineMedium.copy(fontFamily = fontFamily),
+    headlineLarge = defaultTypography.headlineLarge.copy(fontFamily = fontFamily),
+    displaySmall = defaultTypography.displaySmall.copy(fontFamily = fontFamily),
+    displayMedium = defaultTypography.displayMedium.copy(fontFamily = fontFamily),
+    displayLarge = defaultTypography.displayLarge.copy(fontFamily = fontFamily),
+    titleSmall = defaultTypography.titleSmall.copy(fontFamily = fontFamily),
+    titleMedium = defaultTypography.titleMedium.copy(fontFamily = fontFamily),
+    bodySmall = defaultTypography.bodySmall.copy(fontFamily = fontFamily, letterSpacing = 1.sp),
+    bodyMedium = defaultTypography.bodyMedium.copy(fontFamily = fontFamily),
 
 
 )
