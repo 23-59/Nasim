@@ -53,7 +53,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -64,10 +66,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import coil.size.Precision
+import coil.size.Size
 import com.golden_minute.nasim.R
 import com.golden_minute.nasim.domain.model.weather_response.AirQuality
 import com.golden_minute.nasim.presentation.utils.WeatherDetailElement
-import com.golden_minute.nasim.presentation.utils.getWeatherIcon
+import com.golden_minute.nasim.presentation.utils.getWeatherAppearance
 import com.golden_minute.nasim.presentation.utils.glassEffect
 import com.golden_minute.nasim.presentation.utils.shimmerEffect
 import com.golden_minute.nasim.ui.theme.PrimaryGreen
@@ -101,15 +107,27 @@ fun HomePage(modifier: Modifier = Modifier, viewModel: HomeViewModel) {
                         )
                     )
         }) { _ ->
+
         Box(modifier = modifier.fillMaxSize().haze(hazeStateForNavigationBar)) {
-            Image(
-                painter = painterResource(R.drawable.clear_sky),
-                contentDescription = "Background",
-                modifier = modifier
-                    .fillMaxSize()
-                    .haze(hazeState),
-                contentScale = ContentScale.FillBounds
-            )
+
+                AsyncImage(
+                   model = ImageRequest.Builder(LocalContext.current)
+                       .data(viewModel.state.value?.current?.condition?.let {
+                           viewModel.state.value?.current?.isDay?.let { it1 ->
+                               getWeatherAppearance(
+                                   it.code,
+                                   it1
+                               )
+                           }
+                       })
+                       .precision(Precision.EXACT)
+                       .build(),
+                    contentDescription = "",
+                    contentScale = ContentScale.FillBounds,
+                    modifier = Modifier.fillMaxSize()
+                        .haze(hazeState)
+                )
+
             Column(
                 modifier = modifier
                     .fillMaxSize()
@@ -240,7 +258,7 @@ fun HomePage(modifier: Modifier = Modifier, viewModel: HomeViewModel) {
                                 Icon(
                                     painter = painterResource(R.drawable.moonset),
                                     contentDescription = "sunrise",
-                                    modifier = Modifier.padding(8.dp).size(30.dp)
+                                    modifier = Modifier.padding(8.dp).size(40.dp)
                                 )
                                 viewModel.state.value?.forecast?.forecastday?.get(0)?.astro?.let {
                                     Text(
@@ -997,7 +1015,7 @@ fun MainWeatherInfoSection(
 
 
             Image(contentScale = ContentScale.FillBounds,
-                painter = painterResource(getWeatherIcon(weatherCode,isDay)),
+                painter = painterResource(getWeatherAppearance(weatherCode,isDay,false)),
                 contentDescription = "Weather Icon",
                 modifier = modifier.constrainAs(weatherIconPosition) {
                     top.linkTo(dateTextPosition.top)

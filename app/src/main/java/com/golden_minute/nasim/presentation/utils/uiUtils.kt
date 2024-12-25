@@ -138,17 +138,17 @@ fun WeatherDetailElement(
     }
 }
 
-fun getWeatherIcon(weatherCode: Int, isDay: Int, isOutline: Boolean? = null): Int {
+fun getWeatherAppearance(weatherCode: Int, isDay: Int, isOutline: Boolean = false): Int {
     return when (weatherCode) {
         1000 -> {
             if (isDay == 1) {
-                if (isOutline == true) {
+                if (isOutline) {
                     R.drawable.sun_outline
                 } else {
                     R.drawable.sun_main
                 }
             } else
-                if (isOutline == true) {
+                if (isOutline) {
                     R.drawable.moon_outline
                 } else {
                     R.drawable.moon
@@ -156,77 +156,140 @@ fun getWeatherIcon(weatherCode: Int, isDay: Int, isOutline: Boolean? = null): In
         } // Sunny-Clear
         1003 -> {
             if (isDay == 1){
-                if (isOutline == true)
+                if (isOutline)
                     R.drawable.cloudy_day_outline
                  else
                     R.drawable.cloudy_day
             }  else{
-                if (isOutline == true)
+                if (isOutline)
                     R.drawable.cloudy_night_outline
                     else
                     R.drawable.cloudy_night
             }
         } // Partly cloudy day-night
         1006 -> {
-                if (isOutline== true)
+                if (isOutline)
                     R.drawable.cloud_outline
                     else
                     R.drawable.cloud
         } // Cloudy
         1009 -> {
-            if (isOutline==true)
+            if (isOutline)
                 R.drawable.cloud_outline
                 else
                 R.drawable.cloud
         } // Overcast
         1030 -> {
-            if (isOutline==true)
+            if (isOutline)
                 R.drawable.haze_outline
                 else
                 R.drawable.haze
         } // Mist
         1063, 1150, 1153, 1180, 1183, 1186, 1189, 1192, 1195, 1240, 1243, 1246 -> {
-            if (isOutline==true)
+            if (isOutline)
                 R.drawable.rain_outline
                 else
                 R.drawable.rain_icon
         } // Rain variations
         1066, 1114, 1117, 1210, 1213, 1216, 1219, 1222, 1225, 1255, 1258 -> {
-            if (isOutline==true)
+            if (isOutline)
                 R.drawable.snow_outline
                 else
                 R.drawable.snow
         } // Snow variations
         1069, 1072, 1168, 1171, 1198, 1201, 1204, 1207, 1249, 1252, 1261, 1264 -> {
-            if (isOutline ==true)
+            if (isOutline)
                 R.drawable.hail_outline
                 else
                 R.drawable.hail
         } // Sleet, freezing drizzle, ice pellets
         1087, 1273, 1276, 1279, 1282 -> {
-            if (isOutline==true)
+            if (isOutline)
                 R.drawable.lightning_and_rain_outline
                 else
                 R.drawable.lightning_and_rain
         } // Thunder with rain
         1135, 1147 -> {
-            if (isOutline==true)
+            if (isOutline)
                 R.drawable.haze_outline
                 else
                 R.drawable.haze
         } // Fog, freezing fog
         1100 -> {
-            if (isOutline == true)
+            if (isOutline)
                 R.drawable.windy_outline
                 else
                 R.drawable.windy
         }// Windy
         1089 -> {
-            if (isOutline == true)
+            if (isOutline)
                 R.drawable.lightning_and_cloud
                 else
                 R.drawable.lightning_and_cloud
         } // Lightning and cloud
         else -> R.drawable.cloud // Default to cloud icon for unknown codes
+    }
+}
+fun getWeatherAppearance(weatherCode: Int,isDay: Int):String {
+    return when (weatherCode) {
+        1000 -> {
+            if (isDay == 1) {
+                "https://unsplash.com/photos/egH5MbQLiMw/download?ixid=M3wxMjA3fDB8MXxzZWFyY2h8Nzd8fHN1bnxlbnwwfDF8fHwxNzM0NTY4NjEwfDI&force=true&w=2400"
+            } else
+                "https://unsplash.com/photos/LSFuPFE9vKE/download?ixid=M3wxMjA3fDB8MXxhbGx8OHx8fHx8fHx8MTczNDU3MjkwM3w&force=true&w=2400"
+        } // Sunny-Clear
+        1003 -> {
+            if (isDay == 1){
+                ""
+            }  else{
+                ""
+            }
+        } // Partly cloudy day-night
+        1006 -> {
+          if (isDay ==1)
+              ""
+            else
+              ""
+        } // Cloudy
+        1009 -> {
+            if (isDay ==1)
+                ""
+            else
+                ""
+        } // Overcast
+        1030 -> {
+           if (isDay ==1)
+               ""
+            else
+               ""
+        } // Mist
+        1063, 1150, 1153, 1180, 1183, 1186, 1189, 1192, 1195, 1240, 1243, 1246 -> {
+           if (isDay == 1)
+               "https://unsplash.com/photos/OlIkdS2oSGw/download?ixid=M3wxMjA3fDB8MXxzZWFyY2h8MTA3fHxyYWlufGVufDB8MXx8fDE3MzQ1NzE0ODl8Mg&force=true&w=2400"
+            else
+               "https://unsplash.com/photos/-G6r58jASE8/download?ixid=M3wxMjA3fDB8MXxzZWFyY2h8Mzc2fHxyYWlufGVufDB8MXx8fDE3MzQ0ODYxNDB8Mg&force=true&w=2400"
+        } // Rain variations
+        1066, 1114, 1117, 1210, 1213, 1216, 1219, 1222, 1225, 1255, 1258 -> {
+            if (isDay == 1)
+                "https://unsplash.com/photos/OeVpzKVLPJ4/download?ixid=M3wxMjA3fDB8MXxhbGx8NDY1fHx8fHx8fHwxNzM0NTcwNjQyfA&force=true&w=2400"
+            else
+                "https://unsplash.com/photos/ILLq6afxocQ/download?ixid=M3wxMjA3fDB8MXxhbGx8ODl8fHx8fHx8fDE3MzQ1NzExOTR8&force=true&w=2400"
+        } // Snow variations
+        1069, 1072, 1168, 1171, 1198, 1201, 1204, 1207, 1249, 1252, 1261, 1264 -> {
+            "https://unsplash.com/photos/f6cVTolEhQE/download?ixid=M3wxMjA3fDB8MXxzZWFyY2h8Mzd8fGhhaWx8ZW58MHwxfHx8MTczNTE2MTcyOXwy&force=true&w=2400"
+        } // Sleet, freezing drizzle, ice pellets
+        1087, 1273, 1276, 1279, 1282 -> {
+            "https://unsplash.com/photos/rNc2plAblV4/download?ixid=M3wxMjA3fDB8MXxzZWFyY2h8MTh8fGxpZ2h0bmluZ3xlbnwwfDF8fHwxNzM1MTYxODYyfDI&force=true&w=2400"
+        } // Thunder with rain
+        1135, 1147 -> {
+            "https://unsplash.com/photos/yY66QAbGxq4/download?ixid=M3wxMjA3fDB8MXxzZWFyY2h8MjZ8fGZvZ3xlbnwwfDF8fHwxNzM1MTYyMDYzfDI&force=true&w=2400"
+        } // Fog, freezing fog
+        1100 -> {
+            "https://unsplash.com/photos/DEkbh8NeBh4/download?ixid=M3wxMjA3fDB8MXxzZWFyY2h8M3x8d2luZHl8ZW58MHwxfHx8MTczNTE2MjE1OXwy&force=true&w=2400"
+        }// Windy
+        1089 -> {
+            "https://unsplash.com/photos/rNc2plAblV4/download?ixid=M3wxMjA3fDB8MXxzZWFyY2h8MTh8fGxpZ2h0bmluZ3xlbnwwfDF8fHwxNzM1MTYxODYyfDI&force=true&w=2400"
+        } // Lightning and cloud
+        else -> "" // Default to cloud icon for unknown codes
     }
 }

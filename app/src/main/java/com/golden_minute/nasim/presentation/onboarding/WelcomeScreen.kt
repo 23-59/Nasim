@@ -41,12 +41,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.golden_minute.nasim.R
 import com.golden_minute.nasim.presentation.utils.DestinationRoutes
 import com.golden_minute.nasim.ui.theme.NasimTheme
@@ -66,13 +69,13 @@ fun WelcomeScreen(
     val hazeState = remember { HazeState() }
     NasimTheme {
         Box(Modifier.fillMaxSize()) {
-            Image(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .haze(state = hazeState),
-                painter = painterResource(R.drawable.clear_sky),
-                contentDescription = "background image",
-                contentScale = ContentScale.Crop
+
+            AsyncImage(modifier = modifier.fillMaxSize().haze(hazeState), model = ImageRequest.Builder(
+                LocalContext.current)
+                .data("https://unsplash.com/photos/KsIw59jWXaI/download?ixid=M3wxMjA3fDB8MXxzZWFyY2h8Mjk3fHx3aW5kfGVufDB8MXx8fDE3MzQ5MDMwNjN8Mg&force=true&w=2400")
+                .build(), contentDescription = "", contentScale = ContentScale.Crop, onError = {
+                    println(it.result.throwable.message)
+            }
             )
             Column(
                 modifier = Modifier

@@ -74,7 +74,7 @@ dependencies {
     implementation libs.androidx.core.splashscreen.v120alpha02
     implementation(libs.kotlinx.datetime)
     implementation(libs.coil.compose)
-    def ktorVersion = '3.0.2'
+    def ktorVersion = '3.0.3'
     implementation(libs.ktor.client.android)
     implementation("io.ktor:ktor-client-core:$ktorVersion")
     implementation libs.ktor.client.serialization

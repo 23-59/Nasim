@@ -9,15 +9,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.toMutableStateList
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.golden_minute.nasim.R
-import com.golden_minute.nasim.data.data_store.CoordinateDataStore
 import com.golden_minute.nasim.domain.WeatherResponseType
 import com.golden_minute.nasim.domain.model.weather_response.ForecastDayItem
 import com.golden_minute.nasim.domain.model.weather_response.WeatherResponse
 import com.golden_minute.nasim.domain.use_case.AppUseCases
-import com.golden_minute.nasim.presentation.utils.getWeatherIcon
+import com.golden_minute.nasim.presentation.utils.getWeatherAppearance
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
@@ -78,7 +75,7 @@ class HomeViewModel @Inject constructor(application: Application, appUseCases: A
                             }.map {
                                 Triple(
                                     "${it.tempC.roundToInt()}°",
-                                    getWeatherIcon(weatherCode = it.condition.code,it.isDay,true),
+                                    getWeatherAppearance(weatherCode = it.condition.code,it.isDay,true),
                                     it.time.substring(11..15)
                                 )
                             }.toMutableStateList()
@@ -92,7 +89,7 @@ class HomeViewModel @Inject constructor(application: Application, appUseCases: A
                             nextHours = mixedHours?.map {
                                 Triple(
                                     "${it.tempC.roundToInt()}°",
-                                    getWeatherIcon(weatherCode =it.condition.code,it.isDay,true),
+                                    getWeatherAppearance(weatherCode =it.condition.code,it.isDay,true),
                                     it.time.substring(11..15)
                                 )
                             }!!.toMutableStateList()

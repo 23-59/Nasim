@@ -36,12 +36,9 @@ class MainActivity : ComponentActivity() {
 
         installSplashScreen().apply {
             setKeepOnScreenCondition {
-                viewModel.turnOffSplashScreen
+                !viewModel.turnOffSplashScreen
             }
         }
-
-        viewModel.initializeCoordinates()
-
 
         enableEdgeToEdge(
             navigationBarStyle = SystemBarStyle.dark(
@@ -59,7 +56,7 @@ class MainActivity : ComponentActivity() {
 
                 val navController = rememberNavController()
 
-                val startDestination = if (viewModel.lat != 0.0 && viewModel.lon != 0.0)
+                val startDestination = if (viewModel.lat!= 0.0 && viewModel.lon != 0.0)
                     DestinationRoutes.HOME_SCREEN.route
                 else
                     DestinationRoutes.WELCOME_SCREEN.route
@@ -80,6 +77,8 @@ class MainActivity : ComponentActivity() {
                         }
                         val homeViewModel: HomeViewModel = hiltViewModel(entry)
                         HomePage(viewModel = homeViewModel)
+
+
                     }
                     composable(route = DestinationRoutes.WELCOME_SCREEN.route) {
                         WelcomeScreen(navController = navController)
