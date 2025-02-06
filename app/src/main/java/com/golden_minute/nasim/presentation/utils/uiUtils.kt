@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,7 +56,11 @@ fun Modifier.glassEffect(hazeState: HazeState) =
                 )
             )
         )
-        .hazeChild(hazeState, style = HazeStyle(Color.Black.copy(0.2f), blurRadius = 30.dp, noiseFactor = 0f), shape = RoundedCornerShape(20.dp))
+        .hazeChild(
+            hazeState,
+            style = HazeStyle(Color.Black.copy(0.2f), blurRadius = 27.dp, noiseFactor = 0f),
+            shape = RoundedCornerShape(20.dp)
+        )
 
 
 fun Modifier.shimmerEffect(): Modifier = composed {
@@ -72,9 +77,9 @@ fun Modifier.shimmerEffect(): Modifier = composed {
     background(
         brush = Brush.linearGradient(
             colors = listOf(
-                Color(0xFFC5C5C5).copy(0.5f),
-                Color(0xFF6E6E6E),
-                Color(0xFFC5C5C5).copy(0.5f),
+                Color(0xFFC5C5C5).copy(0.7f),
+                Color(0xFF5B5B5B),
+                Color(0xFFC5C5C5).copy(0.7f),
             ), start = Offset(startOffsetX, 0f),
             end = Offset(startOffsetX + size.width.toFloat(), size.height.toFloat())
 
@@ -240,28 +245,28 @@ fun getWeatherAppearance(weatherCode: Int,isDay: Int):String {
         } // Sunny-Clear
         1003 -> {
             if (isDay == 1){
-                ""
+                "https://unsplash.com/photos/oalS6SkZc_s/download?ixid=M3wxMjA3fDB8MXxzZWFyY2h8MTA0fHxjbG91ZHxlbnwwfDF8fHwxNzM1MzAxMDE3fDI&force=true&w=2400"
             }  else{
-                ""
+                "https://unsplash.com/photos/LluELtL5mK4/download?ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzM1MzAxNTY1fA&force=true&w=2400"
             }
         } // Partly cloudy day-night
         1006 -> {
           if (isDay ==1)
-              ""
+              "https://unsplash.com/photos/hYUECF9ZX04/download?ixid=M3wxMjA3fDB8MXxzZWFyY2h8NzZ8fGNsb3VkfGVufDB8MXx8fDE3MzUxOTM1NzV8Mg&force=true&w=2400"
             else
-              ""
+              "https://unsplash.com/photos/dWUPJdXiC-M/download?ixid=M3wxMjA3fDB8MXxzZWFyY2h8MTk0fHxjbG91ZHxlbnwwfDF8fHwxNzM1MzAxMDY5fDI&force=true&w=2400"
         } // Cloudy
         1009 -> {
             if (isDay ==1)
-                ""
+                "https://unsplash.com/photos/OHzkfrv9Ycw/download?ixid=M3wxMjA3fDB8MXxzZWFyY2h8Mzl8fGNsb3VkfGVufDB8MXx8fDE3MzUxOTM0Njd8Mg&force=true&w=2400"
             else
-                ""
+                "https://unsplash.com/photos/dWUPJdXiC-M/download?ixid=M3wxMjA3fDB8MXxzZWFyY2h8MTk0fHxjbG91ZHxlbnwwfDF8fHwxNzM1MzAxMDY5fDI&force=true&w=2400"
         } // Overcast
         1030 -> {
            if (isDay ==1)
-               ""
+               "https://unsplash.com/photos/jdM9HbkPhsA/download?ixid=M3wxMjA3fDB8MXxzZWFyY2h8MzB8fG1pc3R8ZW58MHwxfHx8MTczNTMwMTg3N3wy&force=true&w=2400"
             else
-               ""
+               "https://unsplash.com/photos/ZSXBILzyvgg/download?ixid=M3wxMjA3fDB8MXxzZWFyY2h8MXx8bWlzdCUyMG5pZ2h0fGVufDB8MXx8fDE3MzUzMDE5Njh8Mg&force=true&w=2400"
         } // Mist
         1063, 1150, 1153, 1180, 1183, 1186, 1189, 1192, 1195, 1240, 1243, 1246 -> {
            if (isDay == 1)

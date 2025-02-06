@@ -1,6 +1,7 @@
 package com.golden_minute.nasim.presentation.main
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -31,20 +32,28 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.overscroll
+import androidx.compose.foundation.rememberOverscrollEffect
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.withoutVisualEffect
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemColors
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -53,25 +62,23 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import coil.request.ImageRequest
-import coil.size.Precision
-import coil.size.Size
 import com.golden_minute.nasim.R
 import com.golden_minute.nasim.domain.model.weather_response.AirQuality
+import com.golden_minute.nasim.presentation.utils.DestinationRoutes
 import com.golden_minute.nasim.presentation.utils.WeatherDetailElement
 import com.golden_minute.nasim.presentation.utils.getWeatherAppearance
 import com.golden_minute.nasim.presentation.utils.glassEffect
@@ -88,40 +95,13 @@ import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
 @Composable
-fun HomePage(modifier: Modifier = Modifier, viewModel: HomeViewModel) {
+fun HomePage(modifier: Modifier = Modifier,hazeState: HazeState,hazeStateForSystemBars:HazeState,hazeStateForNavigationBar:HazeState,activityViewModel: ActivityViewModel,navController: NavController) {
     val scrollState = rememberScrollState()
-    val hazeState = remember { HazeState() }
-    val hazeStateForSystemBars = remember { HazeState() }
-    val hazeStateForNavigationBar = remember { HazeState() }
-    Scaffold(
-        modifier = modifier
-            .fillMaxSize()
-            .haze(hazeStateForSystemBars),
-        bottomBar = {
-                    BottomNavigationSection( viewModel = viewModel,
-                        hazeState = hazeStateForNavigationBar,
-                        modifier = modifier.padding(
-                            bottom = WindowInsets.navigationBars.asPaddingValues()
-                                .calculateBottomPadding(),
-                            top = 16.dp,
-                        )
-                    )
-        }) { _ ->
 
         Box(modifier = modifier.fillMaxSize().haze(hazeStateForNavigationBar)) {
 
                 AsyncImage(
-                   model = ImageRequest.Builder(LocalContext.current)
-                       .data(viewModel.state.value?.current?.condition?.let {
-                           viewModel.state.value?.current?.isDay?.let { it1 ->
-                               getWeatherAppearance(
-                                   it.code,
-                                   it1
-                               )
-                           }
-                       })
-                       .precision(Precision.EXACT)
-                       .build(),
+                   model = activityViewModel.imageRequest,
                     contentDescription = "",
                     contentScale = ContentScale.FillBounds,
                     modifier = Modifier.fillMaxSize()
@@ -131,7 +111,9 @@ fun HomePage(modifier: Modifier = Modifier, viewModel: HomeViewModel) {
             Column(
                 modifier = modifier
                     .fillMaxSize()
+                    .haze(hazeStateForNavigationBar)
                     .verticalScroll(scrollState)
+
                     .padding(
                         top = WindowInsets.statusBars
                             .asPaddingValues()
@@ -139,24 +121,33 @@ fun HomePage(modifier: Modifier = Modifier, viewModel: HomeViewModel) {
                         bottom = 160.dp
                     ),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
+                AnimatedVisibility(activityViewModel.contentIsLoaded.value, enter = fadeIn(), exit = fadeOut()) {
+
+                    Button(onClick = {activityViewModel.getWeather()}, colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent), modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp).hazeChild(hazeState, style = HazeStyle(noiseFactor = 0f, blurRadius = 25.dp,tint = MaterialTheme.colorScheme.primary.copy(0.3f)), shape = RoundedCornerShape(12.dp)), shape = RoundedCornerShape(12.dp)) {
+                        Icon(Icons.Default.Refresh, contentDescription = "refresh", tint = Color.White)
+                        Spacer(Modifier.width(4.dp))
+                        Text(text = "Reload data", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.White, modifier = Modifier.padding(vertical = 4.dp))
+
+                    }
+                }
 
                 AnimatedContent(
-                    targetState = viewModel.state.value != null && viewModel.state.value!!.current != null && viewModel.state.value!!.location != null && viewModel.state.value!!.forecast != null,
+                    targetState = activityViewModel.contentIsLoaded.value,
                     transitionSpec = { fadeIn() togetherWith fadeOut() },
                     label = ""
                 ) { showContent ->
                     if (showContent)
                         MainWeatherInfoSection(
                             isLoading = false,
-                            weatherCode = viewModel.state.value!!.current?.condition!!.code,
-                            weatherStatus = viewModel.state.value!!.current?.condition?.text ?: "",
-                            isDay = viewModel.state.value!!.current?.isDay ?: 0,
-                            location = viewModel.state.value!!.location?.name ?: "",
-                            temp = viewModel.state.value!!.current?.tempC?.roundToInt()
+                            weatherCode = activityViewModel.weatherState.value!!.current?.condition!!.code,
+                            weatherStatus = activityViewModel.weatherState.value!!.current?.condition?.text ?: "",
+                            isDay = activityViewModel.weatherState.value!!.current?.isDay ?: 0,
+                            location = activityViewModel.weatherState.value!!.location?.name ?: "",
+                            temp = activityViewModel.weatherState.value!!.current?.tempC?.roundToInt()
                                 .toString(),
-                            feelsLike = viewModel.state.value!!.current?.feelslikeC?.roundToInt()
+                            feelsLike = activityViewModel.weatherState.value!!.current?.feelslikeC?.roundToInt()
                                 .toString(),
                             hazeState = hazeState,
                             modifier = modifier
@@ -176,7 +167,7 @@ fun HomePage(modifier: Modifier = Modifier, viewModel: HomeViewModel) {
                 }
 
                 AnimatedContent(
-                    targetState = viewModel.state.value != null && viewModel.state.value!!.current != null && viewModel.state.value!!.location != null && viewModel.state.value!!.forecast != null,
+                    targetState = activityViewModel.contentIsLoaded.value,
                     transitionSpec = { fadeIn() togetherWith fadeOut() },
                     label = ""
                 ) { showContent ->
@@ -185,12 +176,12 @@ fun HomePage(modifier: Modifier = Modifier, viewModel: HomeViewModel) {
                             isLoading = false,
                             modifier = modifier.padding(horizontal = 28.dp),
                             hazeState = hazeState,
-                            minTemp = "${viewModel.state.value?.forecast?.forecastday?.get(0)?.day?.mintempC?.roundToInt()}°",
-                            maxTemp = "${viewModel.state.value?.forecast?.forecastday?.get(0)?.day?.maxtempC?.roundToInt()}°",
-                            windDegree = viewModel.state.value?.current?.windDegree.toString(),
-                            humidity = "${viewModel.state.value?.current?.humidity}%",
-                            windSpeed = "${viewModel.state.value?.current?.windKph}kph",
-                            cloudCover = "${viewModel.state.value?.current?.cloud}%"
+                            minTemp = "${activityViewModel.weatherState.value?.forecast?.forecastday?.get(0)?.day?.mintempC?.roundToInt()}°",
+                            maxTemp = "${activityViewModel.weatherState.value?.forecast?.forecastday?.get(0)?.day?.maxtempC?.roundToInt()}°",
+                            windDegree = activityViewModel.weatherState.value?.current?.windDir.toString(),
+                            humidity = "${activityViewModel.weatherState.value?.current?.humidity}%",
+                            windSpeed = "${activityViewModel.weatherState.value?.current?.windKph}kph",
+                            cloudCover = "${activityViewModel.weatherState.value?.current?.cloud}%"
                         )
                     } else {
                         DetailSection(
@@ -207,7 +198,7 @@ fun HomePage(modifier: Modifier = Modifier, viewModel: HomeViewModel) {
                     }
                 }
                 AnimatedContent(
-                    targetState = viewModel.state.value != null && viewModel.state.value!!.current != null && viewModel.state.value!!.location != null && viewModel.state.value!!.forecast != null,
+                    targetState = activityViewModel.contentIsLoaded.value,
                     transitionSpec = { fadeIn() togetherWith fadeOut() })
                 { contentIsLoaded ->
 
@@ -232,7 +223,7 @@ fun HomePage(modifier: Modifier = Modifier, viewModel: HomeViewModel) {
                                     contentDescription = "sunrise",
                                     modifier = Modifier.padding(8.dp).size(40.dp)
                                 )
-                                viewModel.state.value?.forecast?.forecastday?.get(0)?.astro?.let {
+                                activityViewModel.weatherState.value?.forecast?.forecastday?.get(0)?.astro?.let {
                                     Text(
                                         it.sunrise,
                                         letterSpacing = 3.sp,
@@ -260,7 +251,7 @@ fun HomePage(modifier: Modifier = Modifier, viewModel: HomeViewModel) {
                                     contentDescription = "sunrise",
                                     modifier = Modifier.padding(8.dp).size(40.dp)
                                 )
-                                viewModel.state.value?.forecast?.forecastday?.get(0)?.astro?.let {
+                                activityViewModel.weatherState.value?.forecast?.forecastday?.get(0)?.astro?.let {
                                     Text(
                                         it.sunset,
                                         color = Color.White,
@@ -356,14 +347,14 @@ fun HomePage(modifier: Modifier = Modifier, viewModel: HomeViewModel) {
                     }
                 }
 
-                AnimatedContent(targetState = viewModel.state.value != null && viewModel.state.value!!.current != null && viewModel.state.value!!.location != null && viewModel.state.value!!.forecast != null) { contentIsLoaded ->
+                AnimatedContent(targetState = activityViewModel.contentIsLoaded.value) { contentIsLoaded ->
 
                     if (contentIsLoaded)
                         NextHoursForecastSection(
                             isLoading = false,
                             modifier = modifier,
                             hazeState = hazeState,
-                            nextHoursForecast = viewModel.nextHours
+                            nextHoursForecast = activityViewModel.nextHours
                         )
                     else
                         NextHoursForecastSection(
@@ -382,7 +373,7 @@ fun HomePage(modifier: Modifier = Modifier, viewModel: HomeViewModel) {
                             )
                         )
                 }
-                val progressValue = when(viewModel.state.value?.current?.airQuality?.usEpaIndex) {
+                val progressValue = when(activityViewModel.weatherState.value?.current?.airQuality?.usEpaIndex) {
                     1 -> 0.16f
                     2 -> 0.32f
                     3 -> 0.48f
@@ -392,7 +383,13 @@ fun HomePage(modifier: Modifier = Modifier, viewModel: HomeViewModel) {
                     else -> 0f
                 }
 
-                viewModel.state.value?.current?.airQuality?.let { AirQualitySection(hazeState = hazeState, airQuality = it, progressValue = progressValue) }
+                AnimatedContent(activityViewModel.contentIsLoaded.value) { isLoaded ->
+                    if (isLoaded)
+                    activityViewModel.weatherState.value?.current?.airQuality?.let { AirQualitySection(hazeState = hazeState, airQuality = it, activityViewModel = activityViewModel, isLoading = false, progressValue = progressValue) }
+                    else
+                         AirQualitySection(hazeState = hazeState, airQuality = null, activityViewModel = activityViewModel, isLoading = true, progressValue = progressValue)
+
+                }
 
 
             }
@@ -422,11 +419,13 @@ fun HomePage(modifier: Modifier = Modifier, viewModel: HomeViewModel) {
 
         }
 
-    }
+
 }
 
 @Composable
-fun BottomNavigationSection(modifier: Modifier = Modifier,hazeState: HazeState,viewModel: HomeViewModel) {
+fun BottomNavigationSection(modifier: Modifier = Modifier,hazeState: HazeState,viewModel: ActivityViewModel,navController: NavController) {
+
+    val coroutineScope = rememberCoroutineScope()
 
 
     val items = listOf(
@@ -448,6 +447,7 @@ fun BottomNavigationSection(modifier: Modifier = Modifier,hazeState: HazeState,v
 //       Box(Modifier.fillMaxWidth().align(Alignment.BottomCenter).height(140.dp).background(brush = Brush.verticalGradient(endY = 350f,
 //           colors =  listOf(Color.Transparent,Color(0xff131313))
 //       )))
+
         NavigationBar(
             tonalElevation = 5.dp,
             containerColor = Color.Transparent,
@@ -455,7 +455,8 @@ fun BottomNavigationSection(modifier: Modifier = Modifier,hazeState: HazeState,v
             modifier = modifier
                 .fillMaxWidth()
                 .height(75.dp)
-                .hazeChild(hazeState, style = HazeStyle(noiseFactor = 0f))
+                .hazeChild(hazeState, style = HazeStyle(noiseFactor = 0f, tint = Color.Black.copy(0.17f)))
+                .border(Dp.Hairline,Color.White.copy(0.4f))
 
 
 
@@ -474,7 +475,35 @@ fun BottomNavigationSection(modifier: Modifier = Modifier,hazeState: HazeState,v
                         disabledTextColor = Color.Transparent
                     ),
                     selected = viewModel.selectedItem.value == key,
-                    onClick = { viewModel.selectedItem.value = key },
+                    onClick = {
+                        when(key){
+                            "Home" -> {
+
+                                if(viewModel.selectedItem.value != key)
+                                    navController.navigate(DestinationRoutes.HOME_SCREEN.route) {
+                                        viewModel.hazeState = HazeState()
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                            }
+                            "Search" -> {
+
+                                if(viewModel.selectedItem.value != key)
+                                    navController.navigate(DestinationRoutes.SEARCH_SCREEN.route) {
+                                        launchSingleTop = true
+                                        popUpTo(DestinationRoutes.SEARCH_SCREEN.route) {
+                                            viewModel.hazeState = HazeState()
+                                            saveState = true
+                                        }
+                                }
+
+
+                            }
+                            "Settings" -> {}
+                            "Locations" -> {}
+                        }
+                        viewModel.selectedItem.value = key
+                              },
                     icon = { Icon(painter = painterResource(value), contentDescription = key) },
                     label = {
                         Text(
@@ -721,7 +750,7 @@ fun DetailSection(
             val firstRow = listOf(
                 Triple(minTemp, R.drawable.min_temp, "Min Temp"),
                 Triple(maxTemp, R.drawable.max_temp, "Max Temp"),
-                Triple(windDegree, R.drawable.compass, "Wind Degree")
+                Triple(windDegree, R.drawable.compass, "Wind Direction")
             )
             val secondRow = listOf(
                 Triple(humidity, R.drawable.raindrops, "Humidity"),
@@ -774,7 +803,7 @@ fun NextHoursForecastSection(
     isLoading: Boolean = true,
     modifier: Modifier = Modifier,
     hazeState: HazeState,
-    nextHoursForecast: List<Triple<String, Int, String>>
+    nextHoursForecast: List<Triple<String, Int, String>>,
 ) {
     if (isLoading)
         Column(
@@ -1080,13 +1109,13 @@ fun MainWeatherInfoSection(
 }
 
 @Composable
-fun AirQualitySection(modifier: Modifier = Modifier, hazeState: HazeState, progressValue: Float,airQuality: AirQuality) {
+fun AirQualitySection(modifier: Modifier = Modifier,activityViewModel: ActivityViewModel, hazeState: HazeState, progressValue: Float,airQuality: AirQuality?= null,isLoading: Boolean) {
     var airPollutionTitle = ""
     var airPollutionDetail = ""
-    var airPollutionProgressColor  = Brush.verticalGradient(listOf(Color.Red))
+    var airPollutionProgressColor  = Brush.verticalGradient(listOf(Color.Red,Color.Red))
     var airPollutionTextColor  = Color.Red
 
-    when(airQuality.usEpaIndex) {
+    when(airQuality?.usEpaIndex) {
         1 -> {
             airPollutionTitle = "Good"
             airPollutionDetail = "Air quality is satisfactory, and air pollution poses little or no risk."
@@ -1124,102 +1153,170 @@ fun AirQualitySection(modifier: Modifier = Modifier, hazeState: HazeState, progr
             airPollutionTextColor = Color(0xff95002A)
         }
    }
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 30.dp)
-            .glassEffect(hazeState = hazeState)
-    ) {
-        Text(
-            modifier = modifier.fillMaxWidth().padding(top = 12.dp),
-            textAlign = TextAlign.Center,
-            text = stringResource(R.string.air_quality),
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = Color.White.copy(0.75f)
-        )
-        Spacer(Modifier.height(18.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(.85f)
-                .height(50.dp)
-                .clip(RoundedCornerShape(15.dp))
-                .align(Alignment.CenterHorizontally)
-                .shadow(elevation = 5.dp, shape = RoundedCornerShape(15.dp))
-                .border(
-                    width = 1.5.dp,
-                    color = Color.White.copy(0.6f),
-                    shape = RoundedCornerShape(15.dp)
+    AnimatedContent(activityViewModel.contentIsLoaded.value) {
+        if (it) {
+            Column(
+                modifier = modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 30.dp)
+                    .glassEffect(hazeState = hazeState)
+            )
+            {
+                Text(
+                    modifier = modifier.fillMaxWidth().padding(top = 12.dp),
+                    textAlign = TextAlign.Center,
+                    text = stringResource(R.string.air_quality),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White.copy(0.75f)
                 )
-                .background(Brush.verticalGradient(listOf(Color(0xff5C5C5C),Color(0xff424242))), shape = RoundedCornerShape(15.dp))
-        ) {
-            Box(
-                Modifier
-                    .fillMaxWidth(fraction = progressValue)
-                    .height(50.dp)
-                    .padding(vertical = 1.5.dp)
-                    .align(Alignment.CenterStart)
-                    .shadow(elevation = 16.dp, shape = RoundedCornerShape(15.dp))
-                    .background(
-                        airPollutionProgressColor,
-                        shape = RoundedCornerShape(15.dp)
+                Spacer(Modifier.height(18.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(.85f)
+                        .height(50.dp)
+                        .clip(RoundedCornerShape(15.dp))
+                        .align(Alignment.CenterHorizontally)
+                        .shadow(elevation = 5.dp, shape = RoundedCornerShape(15.dp))
+                        .border(
+                            width = 1.5.dp,
+                            color = Color.White.copy(0.6f),
+                            shape = RoundedCornerShape(15.dp)
+                        )
+                        .background(Brush.verticalGradient(listOf(Color(0xff5C5C5C),Color(0xff424242))), shape = RoundedCornerShape(15.dp))
+                ) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth(fraction = progressValue)
+                            .height(50.dp)
+                            .padding(vertical = 1.5.dp)
+                            .align(Alignment.CenterStart)
+                            .shadow(elevation = 16.dp, shape = RoundedCornerShape(15.dp))
+                            .background(
+                                airPollutionProgressColor,
+                                shape = RoundedCornerShape(15.dp)
+                            )
+
+                    )
+                    Text(
+                        airPollutionTitle,
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        modifier = Modifier
+                            .align(
+                                Alignment.Center
+                            )
                     )
 
-            )
-            Text(
-                airPollutionTitle,
-                fontSize = 19.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                modifier = Modifier
-                    .align(
-                        Alignment.Center
-                    )
-            )
-
+                }
+                Spacer(Modifier.height(18.dp))
+                Text(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                    text = airPollutionDetail,
+                    textAlign = TextAlign.Center,
+                    color = airPollutionTextColor,
+                )
+                Spacer(Modifier.height(24.dp))
+                Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(60.dp, alignment = Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
+                        Text("${airQuality?.co?.roundToInt()}/m³", style = MaterialTheme.typography.titleLarge)
+                        Spacer(Modifier.height(4.dp))
+                        Text("CO", color = Color.White.copy(0.5f), style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
+                        Text("${airQuality?.o3?.roundToInt()}/m³", style = MaterialTheme.typography.titleLarge)
+                        Spacer(Modifier.height(4.dp))
+                        Text("O3", color = Color.White.copy(0.5f), style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
+                        Text("${airQuality?.no2?.roundToInt()}/m³", style = MaterialTheme.typography.titleLarge)
+                        Spacer(Modifier.height(4.dp))
+                        Text("NO2", color = Color.White.copy(0.5f), style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+                Spacer(Modifier.height(32.dp))
+                Row(Modifier.fillMaxWidth().padding(bottom = 24.dp), horizontalArrangement = Arrangement.spacedBy(70.dp, alignment = Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
+                        Text("${airQuality?.so2?.roundToInt()}/m³", style = MaterialTheme.typography.titleLarge)
+                        Spacer(Modifier.height(4.dp))
+                        Text("SO2", color = Color.White.copy(0.5f), style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
+                        Text("${airQuality?.pm25?.roundToInt()}/m³", style = MaterialTheme.typography.titleLarge)
+                        Spacer(Modifier.height(4.dp))
+                        Text("pm2.5", color = Color.White.copy(0.5f), style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
+                        Text(text = "${airQuality?.pm10?.roundToInt()}/m³", style = MaterialTheme.typography.titleLarge)
+                        Spacer(Modifier.height(4.dp))
+                        Text("pm10", color = Color.White.copy(0.5f), style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
         }
-        Spacer(Modifier.height(16.dp))
-        Text(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-            text = airPollutionDetail,
-            textAlign = TextAlign.Center,
-            color = airPollutionTextColor,
-        )
-        Spacer(Modifier.height(24.dp))
-        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(60.dp, alignment = Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
-                Text("${airQuality.co.roundToInt()}/m³", style = MaterialTheme.typography.titleLarge)
+        else {
+            Column(modifier = modifier.fillMaxWidth().padding(horizontal = 30.dp).border(width = 2.dp, color = Color.White.copy(0.4f), shape = RoundedCornerShape(20.dp)), verticalArrangement = Arrangement.spacedBy(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Spacer(Modifier.height(2.dp))
+                Box(Modifier.fillMaxWidth(0.3f).height(30.dp).clip(
+                    RoundedCornerShape(5.dp)
+                ).shimmerEffect())
+                Box(Modifier.fillMaxWidth(0.7f).height(40.dp).clip(
+                    RoundedCornerShape(5.dp)
+                ).shimmerEffect())
+                Box(Modifier.fillMaxWidth(0.5f).height(20.dp).clip(
+                    RoundedCornerShape(3.dp)
+                ).shimmerEffect())
+                Box(Modifier.fillMaxWidth(0.5f).height(20.dp).clip(
+                    RoundedCornerShape(3.dp)
+                ).shimmerEffect())
+                Box(Modifier.fillMaxWidth(0.5f).height(20.dp).clip(
+                    RoundedCornerShape(3.dp)
+                ).shimmerEffect())
+                Box(Modifier.fillMaxWidth(0.5f).height(20.dp).clip(
+                    RoundedCornerShape(3.dp)
+                ).shimmerEffect())
                 Spacer(Modifier.height(4.dp))
-                Text("CO", color = Color.White.copy(0.5f), style = MaterialTheme.typography.bodyMedium)
-            }
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
-                Text("${airQuality.o3.roundToInt()}/m³", style = MaterialTheme.typography.titleLarge)
-                Spacer(Modifier.height(4.dp))
-                Text("O3", color = Color.White.copy(0.5f), style = MaterialTheme.typography.bodyMedium)
-            }
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
-                Text("${airQuality.no2.roundToInt()}/m³", style = MaterialTheme.typography.titleLarge)
-                Spacer(Modifier.height(4.dp))
-                Text("NO2", color = Color.White.copy(0.5f), style = MaterialTheme.typography.bodyMedium)
-            }
-        }
-        Spacer(Modifier.height(32.dp))
-        Row(Modifier.fillMaxWidth().padding(bottom = 24.dp), horizontalArrangement = Arrangement.spacedBy(70.dp, alignment = Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
-                Text("${airQuality.so2.roundToInt()}/m³", style = MaterialTheme.typography.titleLarge)
-                Spacer(Modifier.height(4.dp))
-                Text("SO2", color = Color.White.copy(0.5f), style = MaterialTheme.typography.bodyMedium)
-            }
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
-                Text("${airQuality.pm25.roundToInt()}/m³", style = MaterialTheme.typography.titleLarge)
-                Spacer(Modifier.height(4.dp))
-                Text("pm2.5", color = Color.White.copy(0.5f), style = MaterialTheme.typography.bodyMedium)
-            }
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
-                Text("${airQuality.pm10.roundToInt()}/m³", style = MaterialTheme.typography.titleLarge)
-                Spacer(Modifier.height(4.dp))
-                Text("pm10", color = Color.White.copy(0.5f), style = MaterialTheme.typography.bodyMedium)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(Modifier.width(70.dp).height(20.dp).clip(RoundedCornerShape(3.dp)).shimmerEffect())
+                        Spacer(Modifier.height(8.dp))
+                        Box(Modifier.width(90.dp).height(15.dp).clip(RoundedCornerShape(3.dp)).shimmerEffect())
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(Modifier.width(70.dp).height(20.dp).clip(RoundedCornerShape(3.dp)).shimmerEffect())
+                        Spacer(Modifier.height(8.dp))
+                        Box(Modifier.width(90.dp).height(15.dp).clip(RoundedCornerShape(3.dp)).shimmerEffect())
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(Modifier.width(70.dp).height(20.dp).clip(RoundedCornerShape(3.dp)).shimmerEffect())
+                        Spacer(Modifier.height(8.dp))
+                        Box(Modifier.width(90.dp).height(15.dp).clip(RoundedCornerShape(3.dp)).shimmerEffect())
+                    }
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(Modifier.width(70.dp).height(20.dp).clip(RoundedCornerShape(3.dp)).shimmerEffect())
+                        Spacer(Modifier.height(8.dp))
+                        Box(Modifier.width(90.dp).height(15.dp).clip(RoundedCornerShape(3.dp)).shimmerEffect())
+                        Spacer(Modifier.height(16.dp))
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(Modifier.width(70.dp).height(20.dp).clip(RoundedCornerShape(3.dp)).shimmerEffect())
+                        Spacer(Modifier.height(8.dp))
+                        Box(Modifier.width(90.dp).height(15.dp).clip(RoundedCornerShape(3.dp)).shimmerEffect())
+                        Spacer(Modifier.height(16.dp))
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(Modifier.width(70.dp).height(20.dp).clip(RoundedCornerShape(3.dp)).shimmerEffect())
+                        Spacer(Modifier.height(8.dp))
+                        Box(Modifier.width(90.dp).height(15.dp).clip(RoundedCornerShape(3.dp)).shimmerEffect())
+                        Spacer(Modifier.height(16.dp))
+                    }
+                }
             }
         }
     }
+
+
+
 }

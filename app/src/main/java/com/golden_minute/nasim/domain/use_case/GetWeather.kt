@@ -6,7 +6,7 @@ import com.golden_minute.nasim.domain.WeatherResponseType
 
 class GetWeather(private val weatherRequestService: WeatherRequestService) {
 
-    suspend operator fun invoke(days: Int): WeatherResponseType {
-        return weatherRequestService.getWeather(days)
+    suspend operator fun invoke(days: Int,lat:Double?,lon:Double?): WeatherResponseType {
+        return weatherRequestService.getWeather(days,lat,lon)
     }
 }

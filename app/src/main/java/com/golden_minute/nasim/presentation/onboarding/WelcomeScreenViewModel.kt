@@ -11,7 +11,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.golden_minute.nasim.data.data_store.CoordinateDataStore
 import com.golden_minute.nasim.domain.CoordinateResponseType
-import com.golden_minute.nasim.domain.model.coordinate_response.CoordinateResponseItem
+import com.golden_minute.nasim.domain.model.coordinate_response.SearchResponse
 import com.golden_minute.nasim.domain.use_case.AppUseCases
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -29,8 +29,8 @@ class WelcomeScreenViewModel @Inject constructor(
     private var _searchValue = mutableStateOf("")
     val searchValue: State<String> = _searchValue
 
-    private var _coordinates = mutableStateListOf<CoordinateResponseItem>()
-    val coordinates: SnapshotStateList<CoordinateResponseItem> = _coordinates
+    private var _coordinates = mutableStateListOf<SearchResponse>()
+    val coordinates: SnapshotStateList<SearchResponse> = _coordinates
 
 
     private var _selectedItem = mutableStateOf(Pair(0.0, 0.0))
@@ -44,7 +44,7 @@ class WelcomeScreenViewModel @Inject constructor(
                     _selectedItem.value = Pair(0.0, 0.0)
                     _searchValue.value = event.searchValue
 
-                    when (val result = useCases.getCoordinate(event.searchValue)) {
+                    when (val result = useCases.getSearchedCitiesInfo(event.searchValue)) {
 
                         is CoordinateResponseType.Error -> Toast.makeText(
                             app.baseContext,

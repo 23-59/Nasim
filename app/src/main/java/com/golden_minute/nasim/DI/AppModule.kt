@@ -5,7 +5,7 @@ import com.golden_minute.nasim.data.WeatherResponseServiceImpl
 import com.golden_minute.nasim.data.data_store.CoordinateDataStore
 import com.golden_minute.nasim.domain.WeatherRequestService
 import com.golden_minute.nasim.domain.use_case.AppUseCases
-import com.golden_minute.nasim.domain.use_case.GetCoordinate
+import com.golden_minute.nasim.domain.use_case.GetSearchedCitiesInfo
 import com.golden_minute.nasim.domain.use_case.GetWeather
 import dagger.Module
 import dagger.Provides
@@ -54,7 +54,7 @@ object AppModule {
 
     @Provides
     fun getAppUseCases(weatherRequestService: WeatherRequestService): AppUseCases {
-        return AppUseCases(GetCoordinate(weatherRequestService), GetWeather(weatherRequestService))
+        return AppUseCases(GetSearchedCitiesInfo(weatherRequestService), GetWeather(weatherRequestService))
     }
 
     @Provides

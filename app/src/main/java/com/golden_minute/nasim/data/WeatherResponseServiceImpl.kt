@@ -24,7 +24,7 @@ class WeatherResponseServiceImpl(
     private val coordinateDataStore: CoordinateDataStore
 ) : WeatherRequestService {
 
-    override suspend fun getWeather(days: Int): WeatherResponseType {
+    override suspend fun getWeather(days: Int, lat: Double?, lon: Double?): WeatherResponseType {
 
         try {
 
@@ -33,57 +33,47 @@ class WeatherResponseServiceImpl(
                 parameter("key", HttpRoutes.API_KEY)
                 parameter(
                     "q",
-                    "${coordinateDataStore.getLatitude.first()},${coordinateDataStore.getLongitude.first()}"
+                    if (lat == null && lon == null) "${coordinateDataStore.getLatitude.first()},${coordinateDataStore.getLongitude.first()}" else "$lat,$lon"
                 )
                 parameter("days", days)
                 parameter("aqi", "yes")
             }
                 .body())
-        }
-        catch (e:RedirectResponseException){
-            return WeatherResponseType.Error("Server Error")
-        }
-        catch (e:HttpRequestTimeoutException){
-            return WeatherResponseType.Error("Internet Connection Timeout, Please Check Your Internet Connection")
-        }
-        catch (e:ClientRequestException){
-            return WeatherResponseType.Error("Invalid Request")
-        }
-        catch (e:ServerResponseException){
-            return WeatherResponseType.Error("Server Error")
-        }
-        catch (e: Exception) {
+        } catch (e: RedirectResponseException) {
+            return WeatherResponseType.Error("Server error")
+        } catch (e: HttpRequestTimeoutException) {
+            return WeatherResponseType.Error("Internet connection timeout,Please check your internet connection and try again")
+        } catch (e: ClientRequestException) {
+            return WeatherResponseType.Error("Invalid request")
+        } catch (e: ServerResponseException) {
+            return WeatherResponseType.Error("Server error")
+        } catch (e: Exception) {
             Log.i(TAG, e.message.toString())
-            return WeatherResponseType.Error("an error has occurred, please check your internet connection")
+            return WeatherResponseType.Error("An error has occurred,Please check your internet connection and try again.")
         }
     }
 
-    override suspend fun getCoordinates(cityName: String): CoordinateResponseType {
+    override suspend fun getCitiesInfo(cityName: String): CoordinateResponseType {
         try {
-            return CoordinateResponseType.OK(httpClient.get {
+            return CoordinateResponseType.OK(lat = null, lon = null, places = httpClient.get {
                 url(HttpRoutes.COORDINATE_BASE_URL)
                 parameter("q", cityName)
                 parameter("key", HttpRoutes.API_KEY)
             }
                 .body())
 
-        }
-        catch (e:RedirectResponseException){
+        } catch (e: RedirectResponseException) {
             return CoordinateResponseType.Error("Server Error")
-        }
-
-        catch (e:HttpRequestTimeoutException) {
+        } catch (e: HttpRequestTimeoutException) {
             return CoordinateResponseType.Error("Internet Connection Timeout, Please Check Your Internet Connection")
-        }
-        catch (e:ClientRequestException) {
+        } catch (e: ClientRequestException) {
             return CoordinateResponseType.Error("Invalid Request")
-        }
-        catch (e:ServerResponseException) {
+        } catch (e: ServerResponseException) {
             return CoordinateResponseType.Error("Server Error")
-        }
-        catch (e: Exception) {
+        } catch (e: Exception) {
             println("Error: ${e.message}")
             return CoordinateResponseType.Error("an error has occurred")
         }
     }
+
 }
