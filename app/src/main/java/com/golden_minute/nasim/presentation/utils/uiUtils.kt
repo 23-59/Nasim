@@ -10,8 +10,12 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -43,6 +47,75 @@ import dev.chrisbanes.haze.hazeChild
 /**
  * this modifier is used for configuring glass effect on the composable
  */
+
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+
+enum class BorderSide {
+    TOP, BOTTOM, LEFT, RIGHT
+}
+
+fun Modifier.oneSideBorder(
+    width: Dp = 1.dp,
+    color: Color = Color.Black,
+    side: BorderSide
+) = this.then(
+    Modifier.drawBehind {
+        val strokeWidth = width.toPx()
+        when (side) {
+            BorderSide.TOP -> {
+                drawLine(
+                    color = color,
+                    start = Offset(0f, 0f),
+                    end = Offset(size.width, 0f),
+                    strokeWidth = strokeWidth
+                )
+            }
+            BorderSide.BOTTOM -> {
+                drawLine(
+                    color = color,
+                    start = Offset(0f, size.height),
+                    end = Offset(size.width, size.height),
+                    strokeWidth = strokeWidth
+                )
+            }
+            BorderSide.LEFT -> {
+                drawLine(
+                    color = color,
+                    start = Offset(0f, 0f),
+                    end = Offset(0f, size.height),
+                    strokeWidth = strokeWidth
+                )
+            }
+            BorderSide.RIGHT -> {
+                drawLine(
+                    color = color,
+                    start = Offset(size.width, 0f),
+                    end = Offset(size.width, size.height),
+                    strokeWidth = strokeWidth
+                )
+            }
+        }
+    }
+)
+
+
+
+
+
+fun Modifier.glassmorphicStatusBar(hazeStateForSystemBars: HazeState): Modifier = this.then(
+    Modifier.composed {
+        val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+        Modifier
+            .fillMaxWidth()
+            .height(statusBarHeight)
+            .hazeChild(hazeStateForSystemBars, style = HazeStyle(noiseFactor = 0f))
+            .oneSideBorder(Dp.Hairline, Color.White.copy(0.4f), BorderSide.BOTTOM)
+    }
+)
+
 fun Modifier.glassEffect(hazeState: HazeState) =
     this
         .clip(RoundedCornerShape(20.dp))
@@ -235,7 +308,7 @@ fun getWeatherAppearance(weatherCode: Int, isDay: Int, isOutline: Boolean = fals
         else -> R.drawable.cloud // Default to cloud icon for unknown codes
     }
 }
-fun getWeatherAppearance(weatherCode: Int,isDay: Int):String {
+fun getWeatherBackground(weatherCode: Int,isDay: Int):String {
     return when (weatherCode) {
         1000 -> {
             if (isDay == 1) {
@@ -264,7 +337,7 @@ fun getWeatherAppearance(weatherCode: Int,isDay: Int):String {
         } // Overcast
         1030 -> {
            if (isDay ==1)
-               "https://unsplash.com/photos/jdM9HbkPhsA/download?ixid=M3wxMjA3fDB8MXxzZWFyY2h8MzB8fG1pc3R8ZW58MHwxfHx8MTczNTMwMTg3N3wy&force=true&w=2400"
+               "https://unsplash.com/photos/03WAxvxfNz4/download?ixid=M3wxMjA3fDB8MXxhbGx8fHx8fHx8fHwxNzM5Mjg0MTQ1fA&force=true&w=2400"
             else
                "https://unsplash.com/photos/ZSXBILzyvgg/download?ixid=M3wxMjA3fDB8MXxzZWFyY2h8MXx8bWlzdCUyMG5pZ2h0fGVufDB8MXx8fDE3MzUzMDE5Njh8Mg&force=true&w=2400"
         } // Mist

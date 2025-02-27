@@ -33,7 +33,11 @@ import kotlin.math.roundToInt
 private const val TAG = "ActivityViewModel"
 
 @HiltViewModel
-class ActivityViewModel @Inject constructor(application: Application,private val appUseCases: AppUseCases,private val coordinateDataStore: CoordinateDataStore) :
+class ActivityViewModel @Inject constructor(
+    application: Application,
+    private val appUseCases: AppUseCases,
+    private val coordinateDataStore: CoordinateDataStore
+) :
     ViewModel() {
     var lat by mutableDoubleStateOf(0.0)
     var lon by mutableDoubleStateOf(0.0)
@@ -52,10 +56,11 @@ class ActivityViewModel @Inject constructor(application: Application,private val
         get() = _contentIsLoaded
 
 
-    init {
+    fun initializeWithDataStore() {
         viewModelScope.launch {
 
-            //checks if the user is opening the app for the time
+            //checks if the user is opening the app for the first time
+
             combine(
                 coordinateDataStore.getLatitude,
                 coordinateDataStore.getLongitude
@@ -72,12 +77,14 @@ class ActivityViewModel @Inject constructor(application: Application,private val
 
         }
     }
+
+
     fun getWeather() {
         _contentIsLoaded.value = false
         isDisconnected.value = ""
         viewModelScope.launch {
 
-            when (val result = appUseCases.getWeather(lat = null, lon = null,days = 1)) {
+            when (val result = appUseCases.getWeather(lat = null, lon = null, days = 1)) {
 
                 is WeatherResponseType.Error -> {
                     weatherState.value = null
@@ -110,21 +117,111 @@ class ActivityViewModel @Inject constructor(application: Application,private val
                             }.map {
                                 Triple(
                                     "${it.tempC.roundToInt()}°",
-                                    getWeatherAppearance(weatherCode = it.condition.code,it.isDay,true),
+                                    getWeatherAppearance(
+                                        weatherCode = it.condition.code,
+                                        it.isDay,
+                                        true
+                                    ),
                                     it.time.substring(11..15)
                                 )
                             }.toMutableStateList()
                             Log.i(TAG, ":$nextHours")
-                        }
-                        else {
-                            val secondDay = forecastDayItem.hour.filter { it.time.substring(11..12).toInt() <=currentTime.hour }
-                            val firstDay = firstDayValue.hour.filter { it.time.substring(11..12).toInt() >= currentTime.hour }
+                        } else {
+                            val secondDay = forecastDayItem.hour.filter {
+                                it.time.substring(11..12).toInt() <= currentTime.hour
+                            }
+                            val firstDay = firstDayValue.hour.filter {
+                                it.time.substring(11..12).toInt() >= currentTime.hour
+                            }
                             val mixedHours = firstDay.plus(secondDay)
 
                             nextHours = mixedHours.map {
                                 Triple(
                                     "${it.tempC.roundToInt()}°",
-                                    getWeatherAppearance(weatherCode =it.condition.code,it.isDay,true),
+                                    getWeatherAppearance(
+                                        weatherCode = it.condition.code,
+                                        it.isDay,
+                                        true
+                                    ),
+                                    it.time.substring(11..15)
+                                )
+                            }.toMutableStateList()
+
+                            Log.i(TAG, ":")
+                        }
+                    }
+
+                }
+
+            }
+
+        }
+    }
+
+    fun getWeather(lat: Double, lon: Double) {
+        _contentIsLoaded.value = false
+        isDisconnected.value = ""
+        viewModelScope.launch {
+
+            when (val result = appUseCases.getWeather(lat = lat, lon = lon, days = 1)) {
+
+                is WeatherResponseType.Error -> {
+                    weatherState.value = null
+                    isDisconnected.value = result.error
+                }
+
+                is WeatherResponseType.OK -> {
+                    weatherState.value = result.response
+                    _contentIsLoaded.value = true
+                    val currentTime =
+                        Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+                    val twoDaysNextHours = result.response.forecast?.forecastday?.take(2)
+                    lateinit var firstDayValue: ForecastDayItem
+                    twoDaysNextHours?.forEachIndexed { index, forecastDayItem ->
+                        if (index == 0) {
+                            firstDayValue = forecastDayItem
+                        }
+                        if (index == 0 && currentTime.hour < 12) {
+                            nextHours = forecastDayItem.hour.filter {
+                                val apiTime = kotlinx.datetime.LocalDateTime(
+                                    year = it.time.substring(0..3).toInt(),
+                                    monthNumber = it.time.substring(5..6).toInt(),
+                                    dayOfMonth = it.time.substring(8..9).toInt(),
+                                    hour = it.time.substring(11..12).toInt(),
+                                    minute = it.time.substring(14..15).toInt()
+                                )
+
+                                (apiTime > currentTime)
+
+                            }.map {
+                                Triple(
+                                    "${it.tempC.roundToInt()}°",
+                                    getWeatherAppearance(
+                                        weatherCode = it.condition.code,
+                                        it.isDay,
+                                        true
+                                    ),
+                                    it.time.substring(11..15)
+                                )
+                            }.toMutableStateList()
+                            Log.i(TAG, ":$nextHours")
+                        } else {
+                            val secondDay = forecastDayItem.hour.filter {
+                                it.time.substring(11..12).toInt() <= currentTime.hour
+                            }
+                            val firstDay = firstDayValue.hour.filter {
+                                it.time.substring(11..12).toInt() >= currentTime.hour
+                            }
+                            val mixedHours = firstDay.plus(secondDay)
+
+                            nextHours = mixedHours.map {
+                                Triple(
+                                    "${it.tempC.roundToInt()}°",
+                                    getWeatherAppearance(
+                                        weatherCode = it.condition.code,
+                                        it.isDay,
+                                        true
+                                    ),
                                     it.time.substring(11..15)
                                 )
                             }.toMutableStateList()

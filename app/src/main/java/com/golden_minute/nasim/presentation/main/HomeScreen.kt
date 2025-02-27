@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -39,6 +40,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.withoutVisualEffect
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -50,6 +52,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemColors
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -78,10 +81,13 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.golden_minute.nasim.R
 import com.golden_minute.nasim.domain.model.weather_response.AirQuality
+import com.golden_minute.nasim.presentation.utils.BorderSide
 import com.golden_minute.nasim.presentation.utils.DestinationRoutes
 import com.golden_minute.nasim.presentation.utils.WeatherDetailElement
 import com.golden_minute.nasim.presentation.utils.getWeatherAppearance
 import com.golden_minute.nasim.presentation.utils.glassEffect
+import com.golden_minute.nasim.presentation.utils.glassmorphicStatusBar
+import com.golden_minute.nasim.presentation.utils.oneSideBorder
 import com.golden_minute.nasim.presentation.utils.shimmerEffect
 import com.golden_minute.nasim.ui.theme.PrimaryGreen
 import com.golden_minute.nasim.ui.theme.fontFamily
@@ -125,7 +131,7 @@ fun HomePage(modifier: Modifier = Modifier,hazeState: HazeState,hazeStateForSyst
             ) {
                 AnimatedVisibility(activityViewModel.contentIsLoaded.value, enter = fadeIn(), exit = fadeOut()) {
 
-                    Button(onClick = {activityViewModel.getWeather()}, colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent), modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp).hazeChild(hazeState, style = HazeStyle(noiseFactor = 0f, blurRadius = 25.dp,tint = MaterialTheme.colorScheme.primary.copy(0.3f)), shape = RoundedCornerShape(12.dp)), shape = RoundedCornerShape(12.dp)) {
+                    Button(onClick = {activityViewModel.getWeather(activityViewModel.lat,activityViewModel.lon)}, colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent), modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp).hazeChild(hazeState, style = HazeStyle(noiseFactor = 0f, blurRadius = 25.dp,tint = MaterialTheme.colorScheme.primary.copy(0.3f)), shape = RoundedCornerShape(12.dp)), shape = RoundedCornerShape(12.dp)) {
                         Icon(Icons.Default.Refresh, contentDescription = "refresh", tint = Color.White)
                         Spacer(Modifier.width(4.dp))
                         Text(text = "Reload data", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.White, modifier = Modifier.padding(vertical = 4.dp))
@@ -144,13 +150,14 @@ fun HomePage(modifier: Modifier = Modifier,hazeState: HazeState,hazeStateForSyst
                             weatherCode = activityViewModel.weatherState.value!!.current?.condition!!.code,
                             weatherStatus = activityViewModel.weatherState.value!!.current?.condition?.text ?: "",
                             isDay = activityViewModel.weatherState.value!!.current?.isDay ?: 0,
-                            location = activityViewModel.weatherState.value!!.location?.name ?: "",
+                            location = "${activityViewModel.weatherState.value!!.location?.name}, ${activityViewModel.weatherState.value!!.location?.country}",
                             temp = activityViewModel.weatherState.value!!.current?.tempC?.roundToInt()
                                 .toString(),
                             feelsLike = activityViewModel.weatherState.value!!.current?.feelslikeC?.roundToInt()
                                 .toString(),
                             hazeState = hazeState,
-                            modifier = modifier
+                            modifier = modifier,
+                            navController = navController
                         )
                     else
                         MainWeatherInfoSection(
@@ -162,7 +169,8 @@ fun HomePage(modifier: Modifier = Modifier,hazeState: HazeState,hazeStateForSyst
                             temp = 0.toString(),
                             feelsLike = 0.toString(),
                             hazeState = hazeState,
-                            modifier = modifier
+                            modifier = modifier,
+                            navController = navController
                         )
                 }
 
@@ -379,7 +387,7 @@ fun HomePage(modifier: Modifier = Modifier,hazeState: HazeState,hazeStateForSyst
                     3 -> 0.48f
                     4 -> 0.64f
                     5 -> 0.80f
-                    6 ->0.96f
+                    6 -> 0.96f
                     else -> 0f
                 }
 
@@ -395,13 +403,7 @@ fun HomePage(modifier: Modifier = Modifier,hazeState: HazeState,hazeStateForSyst
             }
             val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
             // glassmorphic status bar
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(statusBarHeight)
-                    .align(Alignment.TopCenter)
-                    .hazeChild(hazeStateForSystemBars, style = HazeStyle(noiseFactor = 0f))
-            )
+            Box(modifier = Modifier.glassmorphicStatusBar(hazeStateForSystemBars).align(Alignment.TopCenter))
             // glassmorphic navigation bar
             Box(
                 modifier = Modifier
@@ -455,12 +457,14 @@ fun BottomNavigationSection(modifier: Modifier = Modifier,hazeState: HazeState,v
             modifier = modifier
                 .fillMaxWidth()
                 .height(75.dp)
+
                 .hazeChild(hazeState, style = HazeStyle(noiseFactor = 0f, tint = Color.Black.copy(0.17f)))
-                .border(Dp.Hairline,Color.White.copy(0.4f))
+                .oneSideBorder(Dp.Hairline,Color.White.copy(0.6f),BorderSide.TOP)
 
 
 
         ) {
+
 
             for ((key, value) in items) {
 
@@ -476,23 +480,22 @@ fun BottomNavigationSection(modifier: Modifier = Modifier,hazeState: HazeState,v
                     ),
                     selected = viewModel.selectedItem.value == key,
                     onClick = {
-                        when(key){
+
+                        when(key) {
+
                             "Home" -> {
 
                                 if(viewModel.selectedItem.value != key)
                                     navController.navigate(DestinationRoutes.HOME_SCREEN.route) {
-                                        viewModel.hazeState = HazeState()
                                         launchSingleTop = true
                                         restoreState = true
                                     }
                             }
                             "Search" -> {
-
                                 if(viewModel.selectedItem.value != key)
-                                    navController.navigate(DestinationRoutes.SEARCH_SCREEN.route) {
+                                    navController.navigate("SEARCH_SCREEN") {
                                         launchSingleTop = true
                                         popUpTo(DestinationRoutes.SEARCH_SCREEN.route) {
-                                            viewModel.hazeState = HazeState()
                                             saveState = true
                                         }
                                 }
@@ -523,6 +526,7 @@ fun BottomNavigationSection(modifier: Modifier = Modifier,hazeState: HazeState,v
                 .fillMaxWidth()
                 .padding( top = 16.dp)
                 .height(75.dp)
+                .align(Alignment.BottomCenter)
                 .blur(60.dp)
 
         ) {
@@ -536,7 +540,6 @@ fun BottomNavigationSection(modifier: Modifier = Modifier,hazeState: HazeState,v
                 )
             )
         }
-
 
 
     }
@@ -936,7 +939,10 @@ fun MainWeatherInfoSection(
     temp: String,
     feelsLike: String,
     hazeState: HazeState,
-    modifier: Modifier
+    modifier: Modifier,
+    isInSearchScreen:Boolean = false,
+    onSearchItemClicked: () -> Unit = {},
+    navController: NavController
 ) {
     if (isLoading) {
         ConstraintLayout(
@@ -1029,7 +1035,7 @@ fun MainWeatherInfoSection(
                 .glassEffect(hazeState)
 
         ) {
-            val (weatherIconPosition, tempTextPosition, locationIconPosition, weatherStatusPosition, feelsLikeTextPosition, dateTextPosition, locationTextPosition) = createRefs()
+            val (weatherIconPosition, tempTextPosition,moreInfoButtonPosition, locationIconPosition, weatherStatusPosition, feelsLikeTextPosition, dateTextPosition, locationTextPosition) = createRefs()
 
             Text(
                 text = "${temp.toFloat().roundToInt()}°",
@@ -1068,8 +1074,20 @@ fun MainWeatherInfoSection(
                 painter = painterResource(R.drawable.map_marker_outline),
                 contentDescription = "Location Icon",
                 modifier = modifier.constrainAs(locationIconPosition) {
-                    top.linkTo(weatherStatusPosition.bottom, 4.dp)
+                    if (location.length < 20)
+                    top.linkTo(weatherStatusPosition.bottom, 8.dp)
+                    else
+                        top.linkTo(weatherStatusPosition.bottom, 20.dp)
+
                     start.linkTo(weatherStatusPosition.start)
+                    if (!isInSearchScreen) {
+                        if (location.length < 20)
+                            bottom.linkTo(parent.bottom, 16.dp)
+                        else
+                            bottom.linkTo(parent.bottom,24.dp)
+                    }
+
+
                 })
             Text(
                 text = "feels like ${feelsLike.toFloat().roundToInt()}°",
@@ -1099,10 +1117,28 @@ fun MainWeatherInfoSection(
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 modifier = modifier.constrainAs(locationTextPosition) {
-                    top.linkTo(locationIconPosition.top, (-2).dp)
+                    top.linkTo(locationIconPosition.bottom)
+                    bottom.linkTo(locationIconPosition.top)
                     start.linkTo(locationIconPosition.end, 3.dp)
-                    bottom.linkTo(parent.bottom, 12.dp)
+                    end.linkTo(feelsLikeTextPosition.start,24.dp)
+                    width = Dimension.fillToConstraints
                 })
+
+            if(isInSearchScreen)
+            Button(shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(contentColor = Color.White,containerColor = MaterialTheme.colorScheme.primary.copy(0.3f)), modifier = Modifier.constrainAs(moreInfoButtonPosition) {
+                top.linkTo(locationTextPosition.bottom,24.dp)
+                start.linkTo(parent.start,24.dp)
+                end.linkTo(parent.end,24.dp)
+                bottom.linkTo(parent.bottom,12.dp)
+                width = Dimension.fillToConstraints
+            }, onClick = {
+                onSearchItemClicked()
+                navController.navigate(DestinationRoutes.SEARCH_SCREEN_DETAILS.route)
+            }) {
+                Text("More Details", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center, modifier = Modifier.padding(2.dp))
+                Spacer(Modifier.width(2.dp))
+                Icon(Icons.AutoMirrored.Default.ArrowForward, contentDescription = "")
+            }
 
         }
     }

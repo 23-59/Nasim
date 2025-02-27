@@ -4,6 +4,8 @@ enum class DestinationRoutes(val route: String) {
     WELCOME_SCREEN("WELCOME"),
     HOME_SCREEN("HOME"),
     SEARCH_SCREEN("SEARCH"),
-    SETTINGS_SCREEN("SETTINGS")
+    SETTINGS_SCREEN("SETTINGS"),
+    SEARCH_SCREEN_DETAILS("SEARCH_DETAILS"),
+
 
 }

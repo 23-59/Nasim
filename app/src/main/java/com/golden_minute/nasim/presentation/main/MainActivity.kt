@@ -1,6 +1,7 @@
 package com.golden_minute.nasim.presentation.main
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -30,7 +31,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,6 +49,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import coil.request.ImageRequest
 import coil.size.Precision
@@ -54,8 +60,10 @@ import com.golden_minute.nasim.presentation.search.SearchScreen
 import com.golden_minute.nasim.presentation.search.SearchScreenViewModel
 import com.golden_minute.nasim.presentation.utils.DestinationRoutes
 import com.golden_minute.nasim.presentation.utils.getWeatherAppearance
+import com.golden_minute.nasim.presentation.utils.getWeatherBackground
 import com.golden_minute.nasim.ui.theme.NasimTheme
 import dagger.hilt.android.AndroidEntryPoint
+import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
 import javax.inject.Inject
 
@@ -69,6 +77,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        if (viewModel.lat==0.0 && viewModel.lon == 0.0)
+        viewModel.initializeWithDataStore()
 
         installSplashScreen().apply {
             setKeepOnScreenCondition {
@@ -99,16 +110,16 @@ class MainActivity : ComponentActivity() {
                             viewModel.lat != 0.0 && viewModel.lon != 0.0 && viewModel.weatherState.value != null && viewModel.contentIsLoaded.value,
                             enter = fadeIn(), exit = fadeOut()
                         ) {
-                                BottomNavigationSection(
-                                    viewModel = viewModel,
-                                    hazeState = viewModel.hazeStateForNavigationBar,
-                                    navController = navController,
-                                    modifier = Modifier.padding(
-                                        bottom = WindowInsets.navigationBars.asPaddingValues()
-                                            .calculateBottomPadding(),
-                                        top = 16.dp,
-                                    )
+                            BottomNavigationSection(
+                                viewModel = viewModel,
+                                hazeState = viewModel.hazeStateForNavigationBar,
+                                navController = navController,
+                                modifier = Modifier.padding(
+                                    bottom = WindowInsets.navigationBars.asPaddingValues()
+                                        .calculateBottomPadding(),
+                                    top = 16.dp,
                                 )
+                            )
 
 
                         }
@@ -126,12 +137,63 @@ class MainActivity : ComponentActivity() {
                         enterTransition = { fadeIn() },
                         exitTransition = { fadeOut() }) {
 
+                        navigation(
+                            startDestination = DestinationRoutes.SEARCH_SCREEN.route,
+                            route = "SEARCH_SCREEN"
+                        ) {
+
+                            composable(route = DestinationRoutes.SEARCH_SCREEN.route) {
+
+                                val searchScreenViewModel: SearchScreenViewModel =
+                                    hiltViewModel(navController.getBackStackEntry("SEARCH_SCREEN"))
+
+                                    SearchScreen(
+                                        searchScreenViewModel = searchScreenViewModel,
+                                        activityViewModel = viewModel,
+                                        navController = navController
+                                    )
+
+
+
+
+                            }
+                            composable(route = DestinationRoutes.SEARCH_SCREEN_DETAILS.route) {
+                                val searchScreenViewModel: SearchScreenViewModel =
+                                    hiltViewModel(navController.getBackStackEntry("SEARCH_SCREEN"))
+                                val activityViewModel2: ActivityViewModel = hiltViewModel()
+
+                                activityViewModel2.imageRequest = ImageRequest.Builder(LocalContext.current)
+                                    .data(activityViewModel2.weatherState.value?.current?.condition?.let {
+                                        activityViewModel2.weatherState.value?.current?.isDay?.let { it1 ->
+                                            getWeatherBackground(
+                                                it.code,
+                                                it1
+                                            )
+                                        }
+                                    })
+                                    .precision(Precision.EXACT)
+                                    .build()
+
+                                activityViewModel2.lat =
+                                    searchScreenViewModel._weatherState.value?.location?.lat!!
+                                activityViewModel2.lon =
+                                    searchScreenViewModel.weatherState.value?.location?.lon!!
+                                activityViewModel2.getWeather(
+                                    activityViewModel2.lat,
+                                    activityViewModel2.lon
+                                )
+
+
+                                HomePage(activityViewModel = activityViewModel2, hazeState = HazeState(), hazeStateForSystemBars = viewModel.hazeStateForSystemBars, hazeStateForNavigationBar = viewModel.hazeStateForNavigationBar, navController = navController)
+                            }
+                        }
+
 
                         composable(DestinationRoutes.HOME_SCREEN.route) {
                             viewModel.imageRequest = ImageRequest.Builder(LocalContext.current)
                                 .data(viewModel.weatherState.value?.current?.condition?.let {
                                     viewModel.weatherState.value?.current?.isDay?.let { it1 ->
-                                        getWeatherAppearance(
+                                        getWeatherBackground(
                                             it.code,
                                             it1
                                         )
@@ -139,8 +201,10 @@ class MainActivity : ComponentActivity() {
                                 })
                                 .precision(Precision.EXACT)
                                 .build()
-                            if (viewModel.weatherState.value == null)
-                            viewModel.getWeather()
+                            if (viewModel.weatherState.value == null){
+                                viewModel.getWeather()
+                            }
+
                             AnimatedContent(viewModel.isDisconnected, label = "") {
                                 if (it.value.isBlank())
                                     HomePage(
@@ -164,7 +228,17 @@ class MainActivity : ComponentActivity() {
                                             contentDescription = "disconnected",
                                             modifier = Modifier.size(90.dp)
                                         )
-                                        Text("No internet connection!", letterSpacing = 1.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), textAlign = TextAlign.Center, style = MaterialTheme.typography.headlineMedium)
+                                        Text(
+                                            "No internet connection!",
+                                            letterSpacing = 1.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 24.dp),
+                                            textAlign = TextAlign.Center,
+                                            style = MaterialTheme.typography.headlineMedium
+                                        )
                                         Text(
                                             viewModel.isDisconnected.value,
                                             fontWeight = FontWeight.Bold,
@@ -175,13 +249,24 @@ class MainActivity : ComponentActivity() {
                                                 .fillMaxWidth()
                                                 .padding(horizontal = 24.dp)
                                         )
-                                       OutlinedButton( modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), shape = RoundedCornerShape(10.dp), onClick = {
-                                           viewModel.getWeather()
-                                       }) {
-                                           Icon(Icons.Default.Refresh, contentDescription = "refresh")
-                                           Spacer(Modifier.width(4.dp))
-                                           Text("Reload", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall)
-                                       }
+                                        OutlinedButton(modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 24.dp),
+                                            shape = RoundedCornerShape(10.dp),
+                                            onClick = {
+                                                viewModel.getWeather()
+                                            }) {
+                                            Icon(
+                                                Icons.Default.Refresh,
+                                                contentDescription = "refresh"
+                                            )
+                                            Spacer(Modifier.width(4.dp))
+                                            Text(
+                                                "Reload",
+                                                fontWeight = FontWeight.Bold,
+                                                style = MaterialTheme.typography.headlineSmall
+                                            )
+                                        }
 
                                     }
                             }
@@ -189,14 +274,7 @@ class MainActivity : ComponentActivity() {
 
                         }
 
-                        composable(route = DestinationRoutes.SEARCH_SCREEN.route) {
 
-                            val searchScreenViewModel: SearchScreenViewModel = hiltViewModel()
-                            SearchScreen(
-                                searchScreenViewModel = searchScreenViewModel,
-                                activityViewModel = viewModel
-                            )
-                        }
                         composable(route = DestinationRoutes.WELCOME_SCREEN.route) {
                             WelcomeScreen(navController = navController)
 

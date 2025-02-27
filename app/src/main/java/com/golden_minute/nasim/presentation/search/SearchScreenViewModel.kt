@@ -20,7 +20,7 @@ class SearchScreenViewModel @Inject constructor(private val appUseCases: AppUseC
     private var _searchValue = mutableStateOf("")
     val searchValue: State<String> = _searchValue
 
-    private var _weatherState = mutableStateOf<WeatherResponse?>(null)
+    var _weatherState = mutableStateOf<WeatherResponse?>(null)
     val weatherState: State<WeatherResponse?> = _weatherState
 
 
@@ -39,8 +39,7 @@ class SearchScreenViewModel @Inject constructor(private val appUseCases: AppUseC
             when (events) {
                 is SearchScreenEvents.OnClickSearchedResult -> {
                     _weatherState.value = null
-                    _weatherState.value =
-                        weatherListState.find { it.location!!.lat == events.cityLatitude }
+                    _weatherState.value = events.weatherItem
                 }
 
                 is SearchScreenEvents.OnSearchValueChanges -> {
@@ -66,6 +65,7 @@ class SearchScreenViewModel @Inject constructor(private val appUseCases: AppUseC
                                     }
 
                                     is WeatherResponseType.OK -> {
+                                        if (_weatherListState.none { it.location!!.lat == weatherResult.response.location!!.lat })
                                         _weatherListState.add(weatherResult.response)
                                     }
                                 }

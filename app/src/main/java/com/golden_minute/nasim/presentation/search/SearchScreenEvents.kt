@@ -6,7 +6,7 @@ sealed class SearchScreenEvents {
 
     data class OnSearchValueChanges(val value:String):SearchScreenEvents()
 
-    data class OnClickSearchedResult(val cityLatitude:Double):SearchScreenEvents()
+    data class OnClickSearchedResult(val weatherItem:WeatherResponse):SearchScreenEvents()
 
     data object OnClearTextField:SearchScreenEvents()
 }

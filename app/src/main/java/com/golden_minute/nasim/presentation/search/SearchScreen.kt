@@ -40,12 +40,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.golden_minute.nasim.R
 import com.golden_minute.nasim.presentation.main.ActivityViewModel
 import com.golden_minute.nasim.presentation.main.MainWeatherInfoSection
+import com.golden_minute.nasim.presentation.utils.glassmorphicStatusBar
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
+import dev.chrisbanes.haze.hazeChild
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -56,9 +59,12 @@ import kotlinx.coroutines.withContext
 fun SearchScreen(
     modifier: Modifier = Modifier,
     searchScreenViewModel: SearchScreenViewModel,
-    activityViewModel: ActivityViewModel
+    activityViewModel: ActivityViewModel,
+    navController: NavController
 ) {
-    var enteredText by remember{ mutableStateOf(searchScreenViewModel.searchValue.value) }
+    val hazeState = remember { HazeState() }
+
+    var enteredText by remember { mutableStateOf(searchScreenViewModel.searchValue.value) }
     var debouncedText by remember{ mutableStateOf(searchScreenViewModel.searchValue.value) }
     val coroutineScope = rememberCoroutineScope()
     var debounceJob: Job? = null
@@ -90,15 +96,17 @@ fun SearchScreen(
     Box(Modifier
         .fillMaxSize()
         .haze(activityViewModel.hazeStateForNavigationBar)) {
+
+
         AsyncImage(
             model = activityViewModel.imageRequest,
             contentDescription = "",
             contentScale = ContentScale.FillBounds,
-            modifier = Modifier.fillMaxSize().haze(activityViewModel.hazeState)
+            modifier = Modifier.fillMaxSize().haze(hazeState)
 
         )
 
-        Column(
+        Box(
             modifier
                 .fillMaxSize()
         ) {
@@ -106,6 +114,36 @@ fun SearchScreen(
 
 
 
+
+
+            LaunchedEffect(Unit) {
+                if (searchScreenViewModel.searchValue.value.isBlank())
+                focusRequester.requestFocus()
+            }
+
+            LazyColumn(modifier = Modifier
+                .fillMaxSize().align(Alignment.BottomCenter)
+                , contentPadding = PaddingValues(bottom = 130.dp, top = 130.dp)
+            ) {
+                items(searchScreenViewModel.weatherListState) { weatherItem ->
+
+                    MainWeatherInfoSection(
+                        searchScreenViewModel.showLoadingState.value,
+                        weatherItem.current?.condition!!.code,
+                        weatherItem.current.isDay,
+                        weatherItem.current.condition.text,
+                        "${weatherItem.location!!.name}, ${weatherItem.location.country}",
+                        weatherItem.current.tempC.toString(),
+                        weatherItem.current.feelslikeC.toString(),
+                        hazeState,
+                        Modifier,
+                        true,
+                        navController = navController,
+                        onSearchItemClicked = {searchScreenViewModel.onEvent(SearchScreenEvents.OnClickSearchedResult(weatherItem)) }
+                    )
+                    Spacer(Modifier.height(12.dp))
+                }
+            }
             TextField(
                 value = enteredText,
                 onValueChange = {
@@ -119,7 +157,7 @@ fun SearchScreen(
                         modifier = Modifier.padding(end = 5.dp, bottom = 3.dp)
                     )
                 },
-                placeholder = { Text("City Name") },
+                placeholder = { Text("Search for city name") },
                 colors = TextFieldDefaults.colors(
                     unfocusedIndicatorColor = Color.Transparent,
                     focusedIndicatorColor = Color.Transparent,
@@ -132,62 +170,30 @@ fun SearchScreen(
                     .padding(
                         top = WindowInsets.statusBars
                             .asPaddingValues()
-                            .calculateTopPadding() + 12.dp, start = 24.dp, end = 24.dp
-                    ).focusRequester(focusRequester)
-                    .border(
-                        2.dp,
-                        Brush.verticalGradient(
-                            listOf(
-                                MaterialTheme.colorScheme.primary.copy(0.2f),
-                                MaterialTheme.colorScheme.primary.copy(0.8f)
-                            )
-                        ), RoundedCornerShape(15.dp)
-                    )
-                    .background(
+                            .calculateTopPadding() + 24.dp, start = 24.dp, end = 24.dp
+                    ).align(Alignment.TopCenter).background(
                         shape = RoundedCornerShape(15.dp), brush = Brush.verticalGradient(
                             startY = 0f, endY = 200f, colors =
                             listOf(
-                                Color(0xFF414141).copy(0.9f),
-                                Color(0xFF212121).copy(0.9f)
+                                Color(0xFF414141),
+                                Color(0xFF212121)
                             )
                         )
-                    )
+                    ).border(
+                        2.dp,
+                        Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(0.3f),
+                                MaterialTheme.colorScheme.primary.copy(0.8f)
+                            )
+                        ), RoundedCornerShape(15.dp)
+                    ).focusRequester(focusRequester)
+
             )
-
-            LaunchedEffect(Unit) {
-                if (searchScreenViewModel.searchValue.value.isBlank())
-                focusRequester.requestFocus()
-            }
-
-            LazyColumn(modifier = Modifier
-                .fillMaxHeight()
-                , contentPadding = PaddingValues(bottom = 130.dp, top = 32.dp)
-            ) {
-                items(searchScreenViewModel.weatherListState) { weatherItem ->
-
-                    MainWeatherInfoSection(
-                        searchScreenViewModel.showLoadingState.value,
-                        weatherItem.current?.condition!!.code,
-                        weatherItem.current.isDay,
-                        weatherItem.current.condition.text,
-                        weatherItem.location!!.name,
-                        weatherItem.current.tempC.toString(),
-                        weatherItem.current.feelslikeC.toString(),
-                        activityViewModel.hazeState,
-                        modifier = Modifier.padding(horizontal = 8.dp)
-                    )
-                    Spacer(Modifier.height(12.dp))
-                }
-            }
-
         }
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
-                .background(MaterialTheme.colorScheme.surface)
-                .align(Alignment.BottomCenter)
-        )
+
+        Box(Modifier.glassmorphicStatusBar(activityViewModel.hazeStateForNavigationBar).align(Alignment.TopCenter))
+
     }
 
 }
