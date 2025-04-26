@@ -1,6 +1,6 @@
 package com.golden_minute.nasim.domain.use_case
 
-import com.golden_minute.nasim.domain.WeatherRequestService
+import com.golden_minute.nasim.domain.repository.WeatherRequestService
 import com.golden_minute.nasim.domain.WeatherResponseType
 
 

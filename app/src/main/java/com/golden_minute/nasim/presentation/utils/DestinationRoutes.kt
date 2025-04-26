@@ -6,6 +6,8 @@ enum class DestinationRoutes(val route: String) {
     SEARCH_SCREEN("SEARCH"),
     SETTINGS_SCREEN("SETTINGS"),
     SEARCH_SCREEN_DETAILS("SEARCH_DETAILS"),
+    NEXT_DAYS_SCREEN("NEXT_DAYS")
+
 
 
 }

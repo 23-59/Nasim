@@ -1,9 +1,9 @@
-package com.golden_minute.nasim.data
+package com.golden_minute.nasim.data.repository
 
 import android.util.Log
 import com.golden_minute.nasim.data.data_store.CoordinateDataStore
 import com.golden_minute.nasim.domain.CoordinateResponseType
-import com.golden_minute.nasim.domain.WeatherRequestService
+import com.golden_minute.nasim.domain.repository.WeatherRequestService
 import com.golden_minute.nasim.domain.WeatherResponseType
 import com.golden_minute.nasim.domain.utils.HttpRoutes
 import io.ktor.client.HttpClient
@@ -63,16 +63,16 @@ class WeatherResponseServiceImpl(
                 .body())
 
         } catch (e: RedirectResponseException) {
-            return CoordinateResponseType.Error("Server Error")
+            return CoordinateResponseType.Error("Server error")
         } catch (e: HttpRequestTimeoutException) {
-            return CoordinateResponseType.Error("Internet Connection Timeout, Please Check Your Internet Connection")
+            return CoordinateResponseType.Error("Internet connection timeout, Please check your internet connection")
         } catch (e: ClientRequestException) {
-            return CoordinateResponseType.Error("Invalid Request")
+            return CoordinateResponseType.Error("Invalid request")
         } catch (e: ServerResponseException) {
-            return CoordinateResponseType.Error("Server Error")
+            return CoordinateResponseType.Error("Server error")
         } catch (e: Exception) {
             println("Error: ${e.message}")
-            return CoordinateResponseType.Error("an error has occurred")
+            return CoordinateResponseType.Error("An error has occurred, Please check your internet connection and try again")
         }
     }
 

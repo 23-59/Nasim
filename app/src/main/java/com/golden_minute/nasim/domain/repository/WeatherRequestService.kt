@@ -1,4 +1,7 @@
-package com.golden_minute.nasim.domain
+package com.golden_minute.nasim.domain.repository
+
+import com.golden_minute.nasim.domain.CoordinateResponseType
+import com.golden_minute.nasim.domain.WeatherResponseType
 
 interface WeatherRequestService {
 

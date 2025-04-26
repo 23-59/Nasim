@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
@@ -15,6 +16,8 @@ import com.golden_minute.nasim.domain.model.coordinate_response.SearchResponse
 import com.golden_minute.nasim.domain.use_case.AppUseCases
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -36,11 +39,13 @@ class WelcomeScreenViewModel @Inject constructor(
     private var _selectedItem = mutableStateOf(Pair(0.0, 0.0))
     val selectedItem: State<Pair<Double, Double>> = _selectedItem
 
+    private var job: Job? = null
+
 
     fun onEvent(event: WelcomeScreenEvents) {
         when (event) {
             is WelcomeScreenEvents.OnSearchValueChanges -> {
-                viewModelScope.launch {
+                job = viewModelScope.launch {
                     _selectedItem.value = Pair(0.0, 0.0)
                     _searchValue.value = event.searchValue
 
@@ -68,11 +73,16 @@ class WelcomeScreenViewModel @Inject constructor(
                 viewModelScope.launch(Dispatchers.IO) {
                     coordinateDataStore.saveLatitude(selectedItem.value.first)
                     coordinateDataStore.saveLongitude(selectedItem.value.second)
+                    delay(1000)
                 }
             }
 
             is WelcomeScreenEvents.OnSelectItem -> _selectedItem.value = Pair(event.lat, event.lon)
-
+            WelcomeScreenEvents.ClearTextField -> {
+                job?.cancel()
+                _searchValue.value = ""
+                job = null
+            }
         }
     }
 }
