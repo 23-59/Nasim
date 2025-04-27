@@ -1,5 +1,4 @@
- ![Nasim_Pic](https://github.com/user-attachments/assets/51491acf-6c55-482d-b12f-8c940f8bf0d2)
-
+![Nasim_Pic](https://github.com/user-attachments/assets/10634760-b9ee-45df-8efb-e64ab1c5a079)
 
 نرم افزار هواشناسی Nasim
 
@@ -17,6 +16,7 @@
 
 ![Screenshot_20250427-220852](https://github.com/user-attachments/assets/6da1dd7b-e908-49a2-a148-ad1adfaf48c0)
 ![Screenshot_20250427-220902](https://github.com/user-attachments/assets/b4407d6a-9b77-4caa-849f-9a3acc5d15e8)
+
 
 
 
