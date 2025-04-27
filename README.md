@@ -1,7 +1,7 @@
-![Nasim_Pic](https://github.com/user-attachments/assets/51491acf-6c55-482d-b12f-8c940f8bf0d2)
+                                                           ![Nasim_Pic](https://github.com/user-attachments/assets/51491acf-6c55-482d-b12f-8c940f8bf0d2)
 
 
-نرم افزار هواشنانسی Nasim
+نرم افزار هواشناسی Nasim
 
 ساخته شده با زبان Kotlin و سیستم طراحی رابط کاربری Jetpack Compose
 
