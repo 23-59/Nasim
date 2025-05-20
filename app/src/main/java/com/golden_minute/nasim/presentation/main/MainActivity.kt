@@ -32,6 +32,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -42,9 +43,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import coil.request.ImageRequest
@@ -57,17 +58,16 @@ import com.golden_minute.nasim.presentation.search.SearchScreenViewModel
 import com.golden_minute.nasim.presentation.utils.DestinationRoutes
 import com.golden_minute.nasim.presentation.utils.getWeatherBackground
 import com.golden_minute.nasim.ui.theme.NasimTheme
-import dagger.hilt.android.AndroidEntryPoint
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
-import javax.inject.Inject
+import org.koin.androidx.compose.koinViewModel
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
-@AndroidEntryPoint
+
 class MainActivity : ComponentActivity() {
 
-    private val viewModel: ActivityViewModel by viewModels()
+    private val viewModel: ActivityViewModel by viewModel()
 
-    @Inject
     lateinit var dataStore: CoordinateDataStore
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -93,6 +93,11 @@ class MainActivity : ComponentActivity() {
         setContent {
 
             val navController = rememberNavController()
+
+            val navBackStackEntry = navController.currentBackStackEntryAsState()
+
+            val currentState = navBackStackEntry.value?.destination?.route
+
 
             NasimTheme {
 
@@ -137,10 +142,11 @@ class MainActivity : ComponentActivity() {
                             route = "SEARCH_SCREEN"
                         ) {
 
-                            composable(route = DestinationRoutes.SEARCH_SCREEN.route) {
-
-                                val searchScreenViewModel: SearchScreenViewModel =
-                                    hiltViewModel(navController.getBackStackEntry("SEARCH_SCREEN"))
+                            composable(route = DestinationRoutes.SEARCH_SCREEN.route) { backStackEntry ->
+                                val backStackEntryForViewModel = remember(backStackEntry) {
+                                    navController.getBackStackEntry("SEARCH_SCREEN")
+                                }
+                                val searchScreenViewModel: SearchScreenViewModel = koinViewModel(viewModelStoreOwner = backStackEntryForViewModel)
 
                                 SearchScreen(
                                     searchScreenViewModel = searchScreenViewModel,
@@ -150,10 +156,14 @@ class MainActivity : ComponentActivity() {
 
 
                             }
-                            composable(route = DestinationRoutes.SEARCH_SCREEN_DETAILS.route) {
+                            composable(route = DestinationRoutes.SEARCH_SCREEN_DETAILS.route) { backStackEntry ->
+                                val backStackForViewModel = remember(backStackEntry) {
+                                    navController.getBackStackEntry("SEARCH_SCREEN")
+                                }
+
                                 val searchScreenViewModel: SearchScreenViewModel =
-                                    hiltViewModel(navController.getBackStackEntry("SEARCH_SCREEN"))
-                                val activityViewModel2: ActivityViewModel = hiltViewModel()
+                                    koinViewModel(viewModelStoreOwner = backStackForViewModel)
+                                val activityViewModel2: ActivityViewModel = koinViewModel()
 
                                 activityViewModel2.imageRequest =
                                     ImageRequest.Builder(LocalContext.current)
@@ -336,7 +346,14 @@ class MainActivity : ComponentActivity() {
                             }
                             composable(route = DestinationRoutes.NEXT_DAYS_SCREEN.route) {
 
-                                val localViewModel = viewModel
+                                val localViewModel: ActivityViewModel = koinViewModel()
+                                LaunchedEffect(Unit) {
+                                    localViewModel.getWeather(
+                                        viewModel.lat,
+                                        viewModel.lon,
+                                        isInNextDaysScreen = true
+                                    )
+                                }
                                 Log.i("MainActivity", "onCreate: ${localViewModel.weatherState}")
 
                                 if (localViewModel.forecastDays.isNotEmpty())

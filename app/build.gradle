@@ -4,7 +4,6 @@ plugins {
     alias(libs.plugins.compose.compiler)
     id("com.google.devtools.ksp")
     id 'org.jetbrains.kotlin.plugin.serialization'
-    id 'com.google.dagger.hilt.android'
 }
 
 android {
@@ -66,11 +65,8 @@ android {
 }
 
 dependencies {
-    implementation libs.hilt.android
     implementation libs.androidx.animation.android
     implementation libs.androidx.navigation.runtime.android
-    ksp libs.hilt.compiler
-    implementation libs.androidx.hilt.navigation.compose
     implementation libs.androidx.datastore.preferences
     implementation libs.androidx.core.splashscreen.v120alpha02
     implementation(libs.kotlinx.datetime)
@@ -87,6 +83,13 @@ dependencies {
     implementation libs.androidx.navigation.compose
     implementation libs.androidx.constraintlayout.compose
     implementation libs.androidx.room.runtime
+
+    def koin_version = "4.0.4" // Or the latest version
+    implementation "io.insert-koin:koin-android:$koin_version"
+        implementation "io.insert-koin:koin-androidx-compose:$koin_version"
+        implementation "io.insert-koin:koin-androidx-compose-navigation:$koin_version"
+
+
 
     annotationProcessor "androidx.room:room-compiler:$room_version"
     ksp "androidx.room:room-compiler:$room_version"

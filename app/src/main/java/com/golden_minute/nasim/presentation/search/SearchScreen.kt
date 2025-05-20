@@ -159,13 +159,16 @@ fun SearchScreen(
                                temp =  weatherItem.current.tempC,
                                feelsLike =  weatherItem.current.feelslikeC,
                                hazeState =  hazeState,
-                               modifier =  Modifier,
+                               modifier =  Modifier.fillMaxWidth().padding(horizontal = 30.dp, vertical = 12.dp),
                                 navController = navController,
                                 onSearchItemClicked = {
                                     searchScreenViewModel.onEvent(
                                         SearchScreenEvents.OnClickSearchedResult(weatherItem)
                                     )
-                                }, activityViewModel = activityViewModel
+                                }, activityViewModel = activityViewModel,
+                                day = weatherItem.location.localtime.substring(8..9).toInt(),
+                                month = weatherItem.location.localtime.substring(5..6).toInt(),
+                                year = weatherItem.location.localtime.substring(0..3).toInt()
                             )
                             Spacer(Modifier.height(12.dp))
                         }

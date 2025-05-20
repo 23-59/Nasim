@@ -75,6 +75,7 @@ import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import androidx.navigation.NavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import coil.compose.AsyncImage
 import com.golden_minute.nasim.R
 import com.golden_minute.nasim.domain.model.weather_response.AirQuality
@@ -93,8 +94,14 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import kotlinx.datetime.Clock
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.format
+import kotlinx.datetime.format.DayOfWeekNames
+import kotlinx.datetime.format.MonthNames
+import kotlinx.datetime.format.char
+import kotlinx.datetime.toLocalDateTime
 import kotlin.math.roundToInt
 
 @Composable
@@ -108,9 +115,11 @@ fun HomePage(
 ) {
     val scrollState = rememberScrollState()
 
-    Box(modifier = modifier
-        .fillMaxSize()
-        .haze(hazeStateForNavigationBar)) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .haze(hazeStateForNavigationBar)
+    ) {
 
         AsyncImage(
             model = activityViewModel.imageRequest,
@@ -193,9 +202,20 @@ fun HomePage(
                             temp = activityViewModel.weatherState.value!!.current?.tempC!!,
                             feelsLike = activityViewModel.weatherState.value!!.current?.feelslikeC!!,
                             hazeState = hazeState,
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 30.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 30.dp),
                             navController = navController,
-                            activityViewModel = activityViewModel
+                            activityViewModel = activityViewModel,
+                            day = activityViewModel.weatherState.value!!.location?.localtime?.substring(
+                                8..9
+                            )?.toInt()!!,
+                            month = activityViewModel.weatherState.value!!.location?.localtime?.substring(
+                                5..6
+                            )?.toInt()!!,
+                            year = activityViewModel.weatherState.value!!.location?.localtime?.substring(
+                                0..3
+                            )?.toInt()!!,
                         )
                     } else {
                         IsDisconnected.isDisconnected.value =
@@ -211,9 +231,14 @@ fun HomePage(
                         temp = 0f,
                         feelsLike = 0f,
                         hazeState = hazeState,
-                        modifier = Modifier.fillMaxWidth().padding(30.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(30.dp),
                         navController = navController,
-                        activityViewModel = activityViewModel
+                        activityViewModel = activityViewModel,
+                        day = 0,
+                        month = 0,
+                        year = 0
                     )
             }
 
@@ -225,7 +250,9 @@ fun HomePage(
                 if (showContent) {
                     DetailSection(
                         isLoading = false,
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 30.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 30.dp),
                         hazeState = hazeState,
                         minTemp = "${
                             activityViewModel.weatherState.value?.forecast?.forecastday?.get(
@@ -245,7 +272,9 @@ fun HomePage(
                 } else {
                     DetailSection(
                         isLoading = true,
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 30.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 30.dp),
                         hazeState = hazeState,
                         minTemp = "",
                         maxTemp = "",
@@ -264,11 +293,14 @@ fun HomePage(
             { contentIsLoaded ->
 
                 if (contentIsLoaded) {
-                   AstrosSection(
-                       modifier = Modifier.fillMaxWidth().padding(horizontal = 30.dp),
-                       hazeState = hazeState,
-                       activityViewModel = activityViewModel
-                   )
+                    AstrosSection(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 30.dp),
+                        hazeState = hazeState,
+                        sunrise = activityViewModel.weatherState.value?.forecast?.forecastday?.first()?.astro?.sunrise.toString(),
+                        sunset = activityViewModel.weatherState.value?.forecast?.forecastday?.first()?.astro?.sunset.toString()
+                    )
                 } else {
                     Row(
                         modifier = Modifier
@@ -354,7 +386,9 @@ fun HomePage(
                 if (contentIsLoaded)
                     NextHoursForecastSection(
                         isLoading = false,
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 30.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 30.dp),
                         hazeState = hazeState,
                         nextHoursForecast = activityViewModel.nextHours,
                         navController = navController
@@ -392,7 +426,9 @@ fun HomePage(
                 if (isLoaded)
                     activityViewModel.weatherState.value?.current?.airQuality?.let {
                         AirQualitySection(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 30.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 30.dp),
                             hazeState = hazeState,
                             airQuality = it,
                             activityViewModel = activityViewModel,
@@ -486,8 +522,17 @@ fun BottomNavigationSection(
 
         ) {
 
+            val navBackStackEntry by navController.currentBackStackEntryAsState()
+            val currentRoute = navBackStackEntry?.destination?.route
 
-            for ((key, value) in items) {
+
+
+            for ((destination, iconId) in items) {
+
+
+                if (items.any{it.first == currentRoute.toString()} )
+                    ActivityViewModel.selectedItem.value = currentRoute.toString()
+
 
                 NavigationBarItem(
                     colors = NavigationBarItemColors(
@@ -499,22 +544,23 @@ fun BottomNavigationSection(
                         disabledIconColor = Color.Transparent,
                         disabledTextColor = Color.Transparent
                     ),
-                    selected = ActivityViewModel.selectedItem.value == key,
+                    selected = ActivityViewModel.selectedItem.value == destination,
                     onClick = {
 
-                        when (key) {
+                        when (destination) {
 
                             "Home" -> {
 
-                                if (ActivityViewModel.selectedItem.value != key)
+                                if (ActivityViewModel.selectedItem.value != destination)
                                     navController.navigate(DestinationRoutes.HOME_SCREEN.route) {
+                                        popUpTo(DestinationRoutes.HOME_SCREEN.route)
                                         launchSingleTop = true
                                         restoreState = true
                                     }
                             }
 
                             "Search" -> {
-                                if (ActivityViewModel.selectedItem.value != key)
+                                if (ActivityViewModel.selectedItem.value != destination)
                                     navController.navigate("SEARCH_SCREEN") {
                                         launchSingleTop = true
                                         popUpTo(DestinationRoutes.SEARCH_SCREEN.route) {
@@ -528,12 +574,12 @@ fun BottomNavigationSection(
                             "Settings" -> {}
                             "Locations" -> {}
                         }
-                        ActivityViewModel.selectedItem.value = key
+                        ActivityViewModel.selectedItem.value = destination
                     },
-                    icon = { Icon(painter = painterResource(value), contentDescription = key) },
+                    icon = { Icon(painter = painterResource(iconId), contentDescription = destination) },
                     label = {
                         Text(
-                            key,
+                            destination,
                             fontFamily = fontFamily,
                             fontWeight = FontWeight.ExtraBold,
                             style = MaterialTheme.typography.labelLarge
@@ -829,6 +875,7 @@ fun DetailSection(
 fun NextHoursForecastSection(
     modifier: Modifier = Modifier,
     isLoading: Boolean = true,
+    showNextDaysButton : Boolean = true,
     hazeState: HazeState,
     navController: NavController,
     nextHoursForecast: List<Triple<String, Int, String>>,
@@ -901,21 +948,26 @@ fun NextHoursForecastSection(
                     style = MaterialTheme.typography.headlineSmall,
                     color = Color.White
                 )
-                    TextButton( onClick = { navController.navigate(DestinationRoutes.NEXT_DAYS_SCREEN.route) }, interactionSource = null, colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)) {
-                        Text(
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            text = "Next 2 Days",
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = fontFamily,
-                            modifier = Modifier
-                        )
-                        Icon(
-                            painter = painterResource(R.drawable.chevron_right),
-                            contentDescription = "Next 2 Days",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                if (showNextDaysButton)
+                TextButton(
+                    onClick = { navController.navigate(DestinationRoutes.NEXT_DAYS_SCREEN.route) },
+                    interactionSource = null,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
+                ) {
+                    Text(
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        text = "Next 2 Days",
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = fontFamily,
+                        modifier = Modifier
+                    )
+                    Icon(
+                        painter = painterResource(R.drawable.chevron_right),
+                        contentDescription = "Next 2 Days",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
 
             }
             Spacer(Modifier.height(16.dp))
@@ -956,6 +1008,9 @@ fun MainWeatherInfoSection(
     weatherCode: Int,
     activityViewModel: ActivityViewModel,
     isDay: Int,
+    day:Int,
+    month:Int,
+    year:Int,
     weatherStatus: String,
     location: String,
     temp: Float,
@@ -1123,10 +1178,17 @@ fun MainWeatherInfoSection(
                     end.linkTo(parent.end, 16.dp)
                     width = Dimension.fillToConstraints
                 })
-            val formatter = DateTimeFormatter.ofPattern("'today', d MMM yyyy")
-            val formattedDate = LocalDateTime.now().format(formatter)
+            val formattedDate = LocalDate(year,month,day)
+            val format = LocalDate.Format {
+                dayOfWeek(names = DayOfWeekNames(listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")))
+                char(' ')
+                dayOfMonth()
+                char(' ')
+                monthName(names = MonthNames(listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")))
+            }
+            val today = formattedDate.format(format)
             Text(
-                text = formattedDate,
+                text = today,
                 style = MaterialTheme.typography.bodyMedium,
                 letterSpacing = TextUnit(1f, TextUnitType.Sp),
                 fontWeight = FontWeight.Bold,
@@ -1153,13 +1215,13 @@ fun MainWeatherInfoSection(
                 var showChangeLocationBottomSheet = rememberSaveable { mutableStateOf(false) }
 
                 if (showChangeLocationBottomSheet.value)
-                ChangeLocation(
-                    modifier = Modifier,
-                    activityViewModel = activityViewModel,
-                    navController = navController
-                ) {
-                    showChangeLocationBottomSheet.value = false
-                }
+                    ChangeLocation(
+                        modifier = Modifier,
+                        activityViewModel = activityViewModel,
+                        navController = navController
+                    ) {
+                        showChangeLocationBottomSheet.value = false
+                    }
 
                 TextButton(
                     onClick = { showChangeLocationBottomSheet.value = true },
@@ -1658,8 +1720,14 @@ fun AirQualitySection(
 
 
 }
+
 @Composable
-fun AstrosSection(modifier: Modifier = Modifier,hazeState: HazeState,activityViewModel: ActivityViewModel) {
+fun AstrosSection(
+    modifier: Modifier = Modifier,
+    hazeState: HazeState,
+    sunrise: String,
+    sunset: String
+) {
     Row(
         modifier = modifier
             .fillMaxWidth(),
@@ -1681,13 +1749,12 @@ fun AstrosSection(modifier: Modifier = Modifier,hazeState: HazeState,activityVie
                     .padding(8.dp)
                     .size(40.dp)
             )
-            activityViewModel.weatherState.value?.forecast?.forecastday?.get(0)?.astro?.let { // this is a potential bug in next days screen
-                Text(
-                    it.sunrise,
-                    letterSpacing = 3.sp,
-                    style = MaterialTheme.typography.titleLarge
-                )
-            }
+            Text(
+                sunrise,
+                letterSpacing = 3.sp,
+                style = MaterialTheme.typography.titleLarge
+            )
+
             Text(
                 "sunrise",
                 modifier = Modifier.padding(bottom = 8.dp),
@@ -1711,14 +1778,14 @@ fun AstrosSection(modifier: Modifier = Modifier,hazeState: HazeState,activityVie
                     .padding(8.dp)
                     .size(40.dp)
             )
-            activityViewModel.weatherState.value?.forecast?.forecastday?.get(0)?.astro?.let {
-                Text(
-                    it.sunset,
-                    color = Color.White,
-                    style = MaterialTheme.typography.titleLarge,
-                    letterSpacing = 3.sp
-                )
-            }
+
+            Text(
+                sunset,
+                color = Color.White,
+                style = MaterialTheme.typography.titleLarge,
+                letterSpacing = 3.sp
+            )
+
             Text(
                 "sunset",
                 modifier = Modifier.padding(bottom = 8.dp),

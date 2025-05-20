@@ -10,15 +10,10 @@ import com.golden_minute.nasim.domain.CoordinateResponseType
 import com.golden_minute.nasim.domain.WeatherResponseType
 import com.golden_minute.nasim.domain.model.weather_response.WeatherResponse
 import com.golden_minute.nasim.domain.use_case.AppUseCases
-import com.golden_minute.nasim.presentation.main.ActivityViewModel
 import com.golden_minute.nasim.presentation.main.IsDisconnected
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-@HiltViewModel
-class SearchScreenViewModel @Inject constructor(private val appUseCases: AppUseCases) :
-    ViewModel() {
+class SearchScreenViewModel (private val appUseCases: AppUseCases) : ViewModel() {
     private var _searchValue = mutableStateOf("")
     val searchValue: State<String> = _searchValue
 
@@ -52,7 +47,6 @@ class SearchScreenViewModel @Inject constructor(private val appUseCases: AppUseC
                     if (_searchValue.value.isNotBlank())
                         when (val coordinateResult =
                             appUseCases.getSearchedCitiesInfo(searchValue.value)) {
-
                             is CoordinateResponseType.Error -> {
                                 IsDisconnected.isDisconnected.value = coordinateResult.error
                             }

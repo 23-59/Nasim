@@ -47,7 +47,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -61,12 +60,13 @@ import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
 import kotlinx.coroutines.launch
+import org.koin.androidx.compose.koinViewModel
 
 
 @Composable
 fun WelcomeScreen(
     modifier: Modifier = Modifier,
-    viewModel: WelcomeScreenViewModel = hiltViewModel(),
+    viewModel: WelcomeScreenViewModel = koinViewModel(),
     navController: NavController,
     activityViewModel: ActivityViewModel,
     isInWelcomeScreen: Boolean = true,

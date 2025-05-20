@@ -1,7 +1,21 @@
 package com.golden_minute.nasim
 
 import android.app.Application
-import dagger.hilt.android.HiltAndroidApp
+import com.golden_minute.nasim.DI.appModule
+import org.koin.android.ext.koin.androidContext
+import org.koin.android.ext.koin.androidLogger
+import org.koin.core.context.startKoin
 
-@HiltAndroidApp
-class NasimAppClass : Application()
+
+class NasimAppClass : Application() {
+
+    override fun onCreate() {
+        super.onCreate()
+        startKoin {
+            androidLogger()
+            androidContext(this@NasimAppClass)
+            modules(appModule)
+        }
+    }
+
+}
