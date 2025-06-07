@@ -16,7 +16,7 @@ android {
         }
     }
     namespace 'com.golden_minute.nasim'
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.golden_minute.nasim"
@@ -61,7 +61,7 @@ android {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
         }
     }
-    buildToolsVersion '35.0.0'
+    buildToolsVersion '36.0.0'
 }
 
 dependencies {
@@ -71,7 +71,7 @@ dependencies {
     implementation libs.androidx.core.splashscreen.v120alpha02
     implementation(libs.kotlinx.datetime)
     implementation(libs.coil.compose)
-    def ktorVersion = '3.1.2'
+    def ktorVersion = '3.1.3'
     implementation(libs.ktor.client.android)
     implementation("io.ktor:ktor-client-core:$ktorVersion")
     implementation libs.ktor.client.serialization
@@ -85,9 +85,9 @@ dependencies {
     implementation libs.androidx.room.runtime
 
     def koin_version = "4.0.4" // Or the latest version
-    implementation "io.insert-koin:koin-android:$koin_version"
-        implementation "io.insert-koin:koin-androidx-compose:$koin_version"
-        implementation "io.insert-koin:koin-androidx-compose-navigation:$koin_version"
+    implementation libs.koin.android
+        implementation libs.koin.androidx.compose
+        implementation libs.koin.androidx.compose.navigation
 
 
 

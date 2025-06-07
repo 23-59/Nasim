@@ -19,7 +19,6 @@ import com.golden_minute.nasim.domain.model.weather_response.ForecastDayItem
 import com.golden_minute.nasim.domain.model.weather_response.WeatherResponse
 import com.golden_minute.nasim.domain.use_case.AppUseCases
 import com.golden_minute.nasim.presentation.utils.getWeatherAppearance
-import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -38,6 +37,8 @@ object IsDisconnected {
     var isDisconnected = mutableStateOf("")
 }
 
+
+
 class ActivityViewModel (
     application: Application,
     private val appUseCases: AppUseCases,
@@ -46,9 +47,8 @@ class ActivityViewModel (
     ViewModel() {
     var lat by mutableDoubleStateOf(0.0)
     var lon by mutableDoubleStateOf(0.0)
-    var hazeState = HazeState()
-    val hazeStateForSystemBars = HazeState()
-    val hazeStateForBottomNavigation = HazeState()
+
+
 
     var forecastDays = mutableStateListOf<ForecastDayItem>()
 
@@ -65,6 +65,7 @@ class ActivityViewModel (
     companion object {
         @JvmStatic
         var selectedItem = mutableStateOf("Home")
+        var animatePullToRefresh by mutableStateOf(true)
     }
 
 
