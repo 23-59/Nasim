@@ -11,17 +11,17 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.golden_minute.nasim.data.data_store.CoordinateDataStore
 import com.golden_minute.nasim.domain.CoordinateResponseType
-import com.golden_minute.nasim.domain.model.coordinate_response.CoordinateResponseItem
+import com.golden_minute.nasim.domain.model.coordinate_response.SearchResponse
 import com.golden_minute.nasim.domain.use_case.AppUseCases
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import javax.inject.Inject
+import kotlinx.coroutines.withContext
 
 private const val TAG = "WelcomeScreenViewModel"
 
-@HiltViewModel
-class WelcomeScreenViewModel @Inject constructor(
+class WelcomeScreenViewModel (
     private val app: Application,
     private val useCases: AppUseCases,
     private val coordinateDataStore: CoordinateDataStore
@@ -29,28 +29,35 @@ class WelcomeScreenViewModel @Inject constructor(
     private var _searchValue = mutableStateOf("")
     val searchValue: State<String> = _searchValue
 
-    private var _coordinates = mutableStateListOf<CoordinateResponseItem>()
-    val coordinates: SnapshotStateList<CoordinateResponseItem> = _coordinates
+    private var _coordinates = mutableStateListOf<SearchResponse>()
+    val coordinates: SnapshotStateList<SearchResponse> = _coordinates
 
 
     private var _selectedItem = mutableStateOf(Pair(0.0, 0.0))
     val selectedItem: State<Pair<Double, Double>> = _selectedItem
 
+    private var job: Job? = null
+
 
     fun onEvent(event: WelcomeScreenEvents) {
         when (event) {
             is WelcomeScreenEvents.OnSearchValueChanges -> {
-                viewModelScope.launch {
+                job = viewModelScope.launch(Dispatchers.IO) {
                     _selectedItem.value = Pair(0.0, 0.0)
                     _searchValue.value = event.searchValue
 
-                    when (val result = useCases.getCoordinate(event.searchValue)) {
+                    when (val result = useCases.getSearchedCitiesInfo(event.searchValue)) {
 
-                        is CoordinateResponseType.Error -> Toast.makeText(
-                            app.baseContext,
-                            result.error,
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        is CoordinateResponseType.Error -> {
+                            if (event.searchValue.isNotBlank())
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(
+                                    app.baseContext,
+                                    result.error,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
 
                         is CoordinateResponseType.OK -> {
                             if (event.searchValue.isNotBlank()) {
@@ -68,11 +75,16 @@ class WelcomeScreenViewModel @Inject constructor(
                 viewModelScope.launch(Dispatchers.IO) {
                     coordinateDataStore.saveLatitude(selectedItem.value.first)
                     coordinateDataStore.saveLongitude(selectedItem.value.second)
+                    delay(1000)
                 }
             }
 
             is WelcomeScreenEvents.OnSelectItem -> _selectedItem.value = Pair(event.lat, event.lon)
-
+            WelcomeScreenEvents.ClearTextField -> {
+                job?.cancel()
+                _searchValue.value = ""
+                job = null
+            }
         }
     }
 }

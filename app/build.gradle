@@ -4,7 +4,6 @@ plugins {
     alias(libs.plugins.compose.compiler)
     id("com.google.devtools.ksp")
     id 'org.jetbrains.kotlin.plugin.serialization'
-    id 'com.google.dagger.hilt.android'
 }
 
 android {
@@ -17,7 +16,7 @@ android {
         }
     }
     namespace 'com.golden_minute.nasim'
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.golden_minute.nasim"
@@ -62,19 +61,18 @@ android {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
         }
     }
-    buildToolsVersion '35.0.0'
+    buildToolsVersion '36.0.0'
 }
 
 dependencies {
-    implementation libs.hilt.android
     implementation libs.androidx.animation.android
-    ksp libs.hilt.compiler
-    implementation libs.androidx.hilt.navigation.compose
+    implementation libs.androidx.navigation.runtime.android
     implementation libs.androidx.datastore.preferences
     implementation libs.androidx.core.splashscreen.v120alpha02
     implementation(libs.kotlinx.datetime)
     implementation(libs.coil.compose)
-    def ktorVersion = '3.0.3'
+    implementation(libs.composeshadowsplus)
+    def ktorVersion = '3.2.0'
     implementation(libs.ktor.client.android)
     implementation("io.ktor:ktor-client-core:$ktorVersion")
     implementation libs.ktor.client.serialization
@@ -82,15 +80,22 @@ dependencies {
     implementation libs.ktor.serialization.kotlinx.json
     implementation libs.ktor.client.content.negotiation
 
-    def room_version = "2.6.1"
+    def room_version = '2.7.2'
     implementation libs.androidx.navigation.compose
     implementation libs.androidx.constraintlayout.compose
     implementation libs.androidx.room.runtime
 
+    def koin_version = "4.0.4" // Or the latest version
+    implementation libs.koin.android
+        implementation libs.koin.androidx.compose
+        implementation libs.koin.androidx.compose.navigation
+
+
+
     annotationProcessor "androidx.room:room-compiler:$room_version"
     ksp "androidx.room:room-compiler:$room_version"
     implementation libs.kotlinx.serialization.json
-    implementation 'com.github.prime-zs.toolkit:core-ktx:2.0.2-alpha'
+    implementation libs.core.ktx
     implementation(libs.haze.materials)
     implementation(libs.haze)
     implementation libs.androidx.core.ktx

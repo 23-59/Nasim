@@ -7,5 +7,5 @@ import kotlinx.serialization.SerialName
 data class CoordinateResponse(
 
 	@SerialName("CoordinateResponse")
-	val coordinateResponse: List<CoordinateResponseItem>
+	val coordinateResponse: List<SearchResponse>
 )

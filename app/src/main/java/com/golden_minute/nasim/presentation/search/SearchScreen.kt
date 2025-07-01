@@ -1,2 +1,323 @@
 package com.golden_minute.nasim.presentation.search
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import com.golden_minute.nasim.R
+import com.golden_minute.nasim.presentation.main.ActivityViewModel
+import com.golden_minute.nasim.presentation.main.IsDisconnected
+import com.golden_minute.nasim.presentation.main.MainWeatherInfoSection
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+@Composable
+fun SearchScreen(
+    modifier: Modifier = Modifier,
+    searchScreenViewModel: SearchScreenViewModel,
+    activityViewModel: ActivityViewModel,
+    hazeStateForNavigationBar: HazeState,
+    navController: NavController
+) {
+    val hazeState = rememberHazeState()
+
+    var showClearButton by remember { mutableStateOf(false) }
+
+    var enteredText by remember { mutableStateOf(searchScreenViewModel.searchValue.value) }
+    var debouncedText by remember { mutableStateOf(searchScreenViewModel.searchValue.value) }
+    val coroutineScope = rememberCoroutineScope()
+    var debounceJob: Job? = null
+
+
+
+
+    LaunchedEffect(enteredText) {
+        debounceJob?.cancel()
+
+        if (enteredText.isNotBlank())
+        debounceJob = coroutineScope.launch {
+            delay(2000)
+            withContext(Dispatchers.Main) {
+                if (debouncedText != enteredText) {
+                    debouncedText = enteredText
+                    if (debouncedText.isNotBlank())
+                    searchScreenViewModel.onEvent(
+                        SearchScreenEvents.OnSearchValueChanges(
+                            debouncedText
+                        )
+                    )
+                }
+
+            }
+
+        }
+        else
+            searchScreenViewModel.onEvent(SearchScreenEvents.OnClearTextField)
+    }
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .hazeSource(hazeStateForNavigationBar)
+    ) {
+
+
+        AnimatedContent(IsDisconnected.isDisconnected.value, label = "") {
+            if (it.isBlank()) {
+                AsyncImage(
+                    model = activityViewModel.imageRequest,
+                    contentDescription = "",
+                    contentScale = ContentScale.FillBounds,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .hazeSource(hazeState)
+
+                )
+
+                Box(
+                    modifier
+                        .fillMaxSize()
+                ) {
+
+
+                    val focusRequester = remember { FocusRequester() }
+
+
+                    LaunchedEffect(Unit) {
+
+                        if (searchScreenViewModel.searchValue.value.isBlank())
+                            focusRequester.requestFocus()
+                    }
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .align(Alignment.BottomCenter),
+                        contentPadding = PaddingValues(bottom = 130.dp, top = 130.dp)
+                    ) {
+                        items(searchScreenViewModel.weatherListState) { weatherItem ->
+
+                            MainWeatherInfoSection(
+                                isLoading =
+                                searchScreenViewModel.showLoadingState.value,
+                                weatherCode = weatherItem.current?.condition!!.code,
+                                isDay = weatherItem.current.isDay,
+                                weatherStatus =  weatherItem.current.condition.text,
+                               location =  "${weatherItem.location!!.name}, ${weatherItem.location.country}",
+                               temp =  weatherItem.current.tempC,
+                               feelsLike =  weatherItem.current.feelslikeC,
+                               modifier =  Modifier.fillMaxWidth().padding(horizontal = 30.dp, vertical = 12.dp),
+                                navController = navController,
+                                onSearchItemClicked = {
+                                    searchScreenViewModel.onEvent(
+                                        SearchScreenEvents.OnClickSearchedResult(weatherItem)
+                                    )
+                                }, activityViewModel = activityViewModel,
+                                day = weatherItem.location.localtime.substring(8..9).toInt(),
+                                month = weatherItem.location.localtime.substring(5..6).toInt(),
+                                year = weatherItem.location.localtime.substring(0..3).toInt()
+                            )
+                            Spacer(Modifier.height(12.dp))
+                        }
+                    }
+                    TextField(
+                        value = enteredText,
+                        onValueChange = {
+                                enteredText = it
+                                showClearButton = true
+
+                        },
+                        trailingIcon = {
+                            AnimatedContent(targetState = searchScreenViewModel.showClearButton.value) { showClear ->
+                                if (!showClear)
+                                    Icon(
+                                        painter = painterResource(R.drawable.search_lg),
+                                        tint = Color.White.copy(0.5f),
+                                        contentDescription = "search",
+                                        modifier = Modifier
+                                            .padding(end = 5.dp, bottom = 3.dp)
+
+                                    )
+                                else
+                                    Icon(imageVector = Icons.Default.Clear, tint = MaterialTheme.colorScheme.primary, contentDescription = "", modifier = Modifier.clickable {
+                                        enteredText = ""
+                                        searchScreenViewModel.onEvent(SearchScreenEvents.OnClearTextField)
+                                    })
+                            }
+
+
+                        },
+                        placeholder = { Text("Search for city name") },
+                        colors = TextFieldDefaults.colors(
+                            unfocusedIndicatorColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedContainerColor = Color.Transparent
+                        ),
+                        shape = RoundedCornerShape(15.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                top = WindowInsets.statusBars
+                                    .asPaddingValues()
+                                    .calculateTopPadding() + 24.dp, start = 24.dp, end = 24.dp
+                            )
+                            .align(Alignment.TopCenter)
+                            .background(
+                                shape = RoundedCornerShape(15.dp), brush = Brush.verticalGradient(
+                                    startY = 0f, endY = 200f, colors =
+                                        listOf(
+                                            Color(0xFF414141),
+                                            Color(0xFF212121)
+                                        )
+                                )
+                            )
+                            .border(
+                                2.dp,
+                                Brush.verticalGradient(
+                                    listOf(
+                                        MaterialTheme.colorScheme.primary.copy(0.3f),
+                                        MaterialTheme.colorScheme.primary.copy(0.8f)
+                                    )
+                                ), RoundedCornerShape(15.dp)
+                            )
+                            .focusRequester(focusRequester)
+
+                    )
+                }
+
+                Box(
+                    Modifier
+                        .align(Alignment.TopCenter)
+                )
+            } else
+                Column(
+                    Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(
+                        24.dp,
+                        Alignment.CenterVertically
+                    )
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.disconnected),
+                        contentDescription = "disconnected",
+                        modifier = Modifier.size(90.dp)
+                    )
+                    Text(
+                        "No internet connection!",
+                        letterSpacing = 1.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp),
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.headlineMedium
+                    )
+                    Text(
+                        IsDisconnected.isDisconnected.value,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                        style = MaterialTheme.typography.headlineSmall,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp)
+                    )
+                    OutlinedButton(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        onClick = {
+                            searchScreenViewModel.onEvent(SearchScreenEvents.OnSearchValueChanges(enteredText))
+                        }) {
+                        Icon(
+                            Icons.Default.Refresh,
+                            contentDescription = "refresh"
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            "Reload",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.headlineSmall
+                        )
+                    }
+
+                }
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(
+                    WindowInsets.navigationBars
+                        .asPaddingValues()
+                        .calculateBottomPadding()
+                )
+                .align(Alignment.BottomCenter)
+                .background(MaterialTheme.colorScheme.surface)
+        )
+
+    }
+
+}
+
+
+
