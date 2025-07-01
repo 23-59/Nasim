@@ -6,12 +6,13 @@ package com.golden_minute.nasim.presentation.utils
  */
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -45,15 +46,21 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.Velocity
@@ -61,6 +68,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.golden_minute.nasim.R
 import com.golden_minute.nasim.presentation.main.ActivityViewModel
+import com.golden_minute.nasim.ui.theme.NasimTheme
+import com.golden_minute.nasim.ui.theme.highlightColor
+import com.golden_minute.nasim.ui.theme.textColor
 import kotlinx.coroutines.launch
 
 enum class BorderSide {
@@ -118,8 +128,6 @@ fun Modifier.oneSideBorder(
 )
 
 
-
-
 /**
  * Applies a one-time shimmer effect to a Composable, typically used for text.
  * The shimmer animation sweeps a highlight color across the Composable's content.
@@ -144,8 +152,9 @@ fun Modifier.oneTimeShimmer(
     textColor: Color,
     highlightColor: Color,
     startAnimation: Boolean,
-    durationMillis: Int = 3000,
-    delayMillis: Int = 2500
+    durationMillis: Int = 4000,
+    delayMillis: Int = 2500,
+    isInfinite: Boolean = false
 ): Modifier = composed {
 
     // `size` stores the dimensions (width and height) of the Composable this Modifier is applied to.
@@ -156,35 +165,46 @@ fun Modifier.oneTimeShimmer(
     // An Animatable allows for smooth animation between values. It starts at 0f.
     val progress = remember { Animatable(0f) }
 
-    // This derived state is the key to a flicker-free transition.
-    // `isEffectActive` is true only when the animation is actually running (progress is between 0 and 1).
-    // This prevents applying the graphics layers and drawing operations when they are not needed,
-    // potentially improving performance and avoiding visual artifacts at the start or end of the animation.
-    val isEffectActive = progress.value > 0f && progress.value < 1f
-
     // `LaunchedEffect` is a coroutine builder that runs a suspend function (lambda)
     // when the Composable enters the composition and cancels it when it leaves.
     // The `key1 = size` parameter means this effect will relaunch if the `size` of the Composable changes.
     // This is important because the shimmer calculation depends on the Composable's width.
-    LaunchedEffect(size) {
+    LaunchedEffect(size, key2 = startAnimation, key3 = isInfinite) {
 
         // Only start the animation if the Composable has a valid width and the animation has never started before.
         if (size.width > 0 && startAnimation) {
             // `snapTo(0f)` immediately sets the progress to 0f without animation.
             // This resets the animation if the size changes, ensuring it starts from the beginning.
             progress.snapTo(0f)
+
+            val animationSpec = if (isInfinite) {
+                infiniteRepeatable<Float>(
+                    animation = tween(
+                        durationMillis = durationMillis,
+                        easing = LinearEasing,
+                        delayMillis = delayMillis
+                    ), repeatMode = RepeatMode.Restart
+                )
+            }
+            else {
+                tween(
+                    durationMillis = durationMillis,
+                    delayMillis = delayMillis
+                )
+            }
+
             // `animateTo` starts an animation that changes `progress.value` from its current value (0f)
             // to the `targetValue` (1f).
             progress.animateTo(
                 targetValue = 1f,
                 // `animationSpec` defines how the animation progresses over time.
                 // `tween` creates a simple animation with a specified duration and delay.
-                animationSpec = tween(
-                    durationMillis = durationMillis, // How long the shimmer takes to complete.
-                    delayMillis = delayMillis       // Wait this long before starting.
-                )
+                animationSpec = animationSpec
             )
             ActivityViewModel.animatePullToRefresh = false
+        } else if (!startAnimation){
+            progress.stop()
+            progress.snapTo(0f)
         }
     }
 
@@ -196,7 +216,7 @@ fun Modifier.oneTimeShimmer(
         // will only be added if `isEffectActive` is true.
         .then(
             // Conditionally apply the entire effect chain ONLY when the animation is active.
-            if (isEffectActive) {
+            if (startAnimation && size.width > 0) {
 
                 // Calculate the horizontal translation of the shimmer gradient based on the animation `progress`.
                 // The gradient moves from left to right. `size.width * 1.5f` makes the shimmer
@@ -215,7 +235,10 @@ fun Modifier.oneTimeShimmer(
                     ),
                     // `start` and `end` define the line along which the gradient colors are distributed.
                     // We offset these by `shimmerTranslate` to move the gradient across the Composable.
-                    start = androidx.compose.ui.geometry.Offset(x = shimmerTranslate - gradientWidth, y = 0f),
+                    start = androidx.compose.ui.geometry.Offset(
+                        x = shimmerTranslate - gradientWidth,
+                        y = 0f
+                    ),
                     end = androidx.compose.ui.geometry.Offset(x = shimmerTranslate, y = 0f)
                 )
 
@@ -250,6 +273,66 @@ fun Modifier.oneTimeShimmer(
 }
 
 
+/**
+ * A Composable that displays an Icon with a glow effect behind it.
+ *
+ * This is the recommended approach for this effect, as it uses modern, hardware-accelerated
+ * graphics layers and is much simpler and more reliable than custom drawing.
+ *
+ * @param imageVector The icon to display.
+ * @param contentDescription The content description for the icon.
+ * @param modifier The modifier to be applied to the icon.
+ * @param glowColor The color of the glow.
+ * @param glowRadius The radius of the glow's blur effect.
+ * @param iconTint The tint color of the main icon on top.
+ */
+@Composable
+fun GlowingIcon(
+    imageVector: Painter,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+    glowColor: Color,
+    glowRadius: Dp,
+    iconTint: Color
+) {
+    // Convert the Dp glow radius to pixels for the BlurEffect
+    val radiusInPx = with(LocalDensity.current) { glowRadius.toPx() }
+
+    // Create the BlurEffect. This is what creates the blur.
+    val blurEffect = if (radiusInPx > 0) {
+        BlurEffect(radiusInPx, radiusInPx, TileMode.Decal)
+    } else {
+        null
+    }
+
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center
+    ) {
+        // 1. BACKGROUND (GLOW) LAYER:
+        // An Icon that is tinted with the glow color, then blurred using a graphicsLayer.
+        Icon(
+            painter = imageVector,
+            contentDescription = null, // This is decorative; the main icon has the description
+            tint = glowColor, // The icon's shape is filled with the glow color
+            modifier = Modifier
+                .graphicsLayer {
+                    // Apply the blur effect to this layer
+                    renderEffect = blurEffect
+                }
+        )
+
+        // 2. FOREGROUND LAYER:
+        // The original, crisp icon drawn on top of the blurred one.
+        Icon(
+            painter = imageVector,
+            contentDescription = contentDescription,
+            tint = iconTint
+        )
+    }
+}
+
+
 fun Modifier.shimmerEffect(): Modifier = composed {
     var size by remember { mutableStateOf(IntSize.Zero) }
     val transition = rememberInfiniteTransition()
@@ -278,6 +361,46 @@ fun Modifier.shimmerEffect(): Modifier = composed {
 
 
 @Composable
+fun LoadingScreen(modifier: Modifier = Modifier) {
+    Column(
+        Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        CircularProgressIndicator(
+            strokeWidth = 10.dp,
+            color = MaterialTheme.colorScheme.onSurface.copy(
+                0.8f
+            ),
+            modifier = Modifier.size(100.dp)
+        )
+        Spacer(Modifier.height(20.dp))
+        Text(
+            "Loading...",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.oneTimeShimmer(
+                durationMillis = 600,
+                delayMillis = 600,
+                textColor = textColor,
+                startAnimation = true,
+                highlightColor = highlightColor,
+                isInfinite = true
+            )
+        )
+    }
+}
+
+@Preview
+@Composable
+fun LoadingScreenPreview() {
+    NasimTheme {
+        LoadingScreen()
+    }
+
+}
+
+@Composable
 fun WeatherDetailElement(
     weatherIcon: Int,
     weatherStatus: String,
@@ -292,42 +415,45 @@ fun WeatherDetailElement(
     ) {
         if (iconAtTop) {
             Icon(
+                tint = MaterialTheme.colorScheme.onSurface.copy(0.7f),
                 painter = painterResource(weatherIcon),
                 contentDescription = weatherLabel,
-                modifier = modifier.size(40.dp)
+                modifier = Modifier.size(40.dp)
             )
-            Spacer(modifier.height(10.dp))
+            Spacer(Modifier.height(10.dp))
             Text(
                 text = weatherStatus,
                 style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface,
                 letterSpacing = 1.sp
             )
-            Spacer(modifier.height(10.dp))
+            Spacer(Modifier.height(10.dp))
             Text(
                 text = weatherLabel,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(0.6f)
+                color = MaterialTheme.colorScheme.onSurface.copy(0.4f)
             )
 
         } else {
             Text(
                 text = weatherLabel,
                 style = MaterialTheme.typography.labelLarge,
-                color = Color.White.copy(0.8f)
+                color = MaterialTheme.colorScheme.onSurface.copy(0.5f)
             )
-            Spacer(modifier.height(10.dp))
-            Image(
+            Spacer(Modifier.height(10.dp))
+            Icon(
                 painter = painterResource(weatherIcon),
                 contentDescription = weatherLabel,
-                modifier = Modifier.size(35.dp)
+                modifier = Modifier.size(35.dp),
+                tint = MaterialTheme.colorScheme.onSurface
             )
-            Spacer(modifier.height(10.dp))
+            Spacer(Modifier.height(10.dp))
             Text(
                 text = weatherStatus,
                 style = MaterialTheme.typography.titleLarge,
                 letterSpacing = 2.sp
             )
-            Spacer(modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
 
         }
 
@@ -353,7 +479,7 @@ fun CustomPullToRefresh(
     isRefreshing: Boolean,
     onRefresh: suspend () -> Unit,
     canBePulled: () -> Boolean,
-    pulledToDistance : (Boolean) -> Unit,
+    pulledToDistance: (Boolean) -> Unit,
     content: @Composable () -> Unit
 ) {
 
@@ -383,8 +509,9 @@ fun CustomPullToRefresh(
 
                 // If the user pushes up while the indicator is visible, reduce the pull progress.
                 if (isPushingUp && pullProgress > 0f) {
-                   if (pullProgress < RefreshTriggerDistance) pulledToDistance(false)
-                    val newProgress = pullProgress + (available.y * 0.23f) // available.y is negative
+                    if (pullProgress < RefreshTriggerDistance) pulledToDistance(false)
+                    val newProgress =
+                        pullProgress + (available.y * 0.23f) // available.y is negative
                     pullProgress = newProgress.coerceAtLeast(0f)
                     // Consume the scroll delta to shrink the indicator instead of scrolling the list.
                     return Offset(0f, available.y)
@@ -392,7 +519,8 @@ fun CustomPullToRefresh(
 
                 // If the user is pulling down and the gesture is allowed, update the pull progress.
                 if (isPullingDown && canBePulled() && source == NestedScrollSource.UserInput) {
-                    val newProgress = pullProgress + (available.y * 0.23f) // Use a multiplier to create resistance.
+                    val newProgress =
+                        pullProgress + (available.y * 0.23f) // Use a multiplier to create resistance.
                     if (pullProgress >= RefreshTriggerDistance) pulledToDistance(true)
                     pullProgress = newProgress.coerceIn(0f, MaxPullDistance)
                     // Consume the scroll delta to show the indicator instead of scrolling the list.
@@ -430,9 +558,11 @@ fun CustomPullToRefresh(
                 .fillMaxWidth()
                 .height(indicatorHeight.dp)
                 // Add padding to account for the status bar.
-                .padding(top = WindowInsets.statusBars
-                    .asPaddingValues()
-                    .calculateTopPadding() + 32.dp),
+                .padding(
+                    top = WindowInsets.statusBars
+                        .asPaddingValues()
+                        .calculateTopPadding() + 32.dp
+                ),
             contentAlignment = Alignment.Center
         ) {
             // Only show the indicator if it has a meaningful height.
@@ -447,16 +577,20 @@ fun CustomPullToRefresh(
                         progress = { progressFraction },
                         strokeWidth = 3.dp,
                         // Scale the indicator for a more dynamic feel.
-                        modifier = Modifier.size(65.dp).scale(progressFraction.coerceAtLeast(0.2f))
+                        modifier = Modifier
+                            .size(65.dp)
+                            .scale(progressFraction.coerceAtLeast(0.2f))
                     )
                 }
             }
         }
 
         // The main content area.
-        Box(modifier = Modifier
-            .weight(1f)
-            .fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+        ) {
             content()
         }
     }

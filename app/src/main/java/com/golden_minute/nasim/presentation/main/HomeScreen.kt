@@ -36,7 +36,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -56,7 +55,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -67,6 +65,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
@@ -75,10 +74,13 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.gigamole.composeshadowsplus.rsblur.rsBlurShadow
+import com.gigamole.composeshadowsplus.softlayer.softLayerShadow
 import com.golden_minute.nasim.R
 import com.golden_minute.nasim.domain.model.weather_response.AirQuality
 import com.golden_minute.nasim.presentation.utils.CustomPullToRefresh
 import com.golden_minute.nasim.presentation.utils.DestinationRoutes
+import com.golden_minute.nasim.presentation.utils.GlowingIcon
 import com.golden_minute.nasim.presentation.utils.WeatherDetailElement
 import com.golden_minute.nasim.presentation.utils.getWeatherAppearance
 import com.golden_minute.nasim.presentation.utils.oneTimeShimmer
@@ -113,16 +115,23 @@ fun HomePage(
 
     var pullToRefresh by rememberSaveable { mutableStateOf(false) }
 
-    val animatePullToRefresh = animateColorAsState(if (pullToRefresh) MaterialTheme.colorScheme.primary else Color(0xff808080))
+    val animatePullToRefresh = animateColorAsState(
+        if (pullToRefresh) MaterialTheme.colorScheme.primary else Color(0xff808080)
+    )
+    val animatePullToRefreshGlow = animateColorAsState(if (pullToRefresh) MaterialTheme.colorScheme.primary else Color.Transparent)
 
-    CustomPullToRefresh(isRefreshing = isRefreshing, pulledToDistance = { pullToRefresh = it }, canBePulled = {
-        scrollState.value == 0
-    }, onRefresh = {
-        isRefreshing = true
-        activityViewModel.getWeather(activityViewModel.lat, activityViewModel.lon)
-        isRefreshing = false
+    CustomPullToRefresh(
+        isRefreshing = isRefreshing,
+        pulledToDistance = { pullToRefresh = it },
+        canBePulled = {
+            scrollState.value == 0
+        },
+        onRefresh = {
+            isRefreshing = true
+            activityViewModel.getWeather(activityViewModel.lat, activityViewModel.lon)
+            isRefreshing = false
 
-    }) {
+        }) {
         Column(
             modifier = modifier
                 .fillMaxSize()
@@ -146,15 +155,22 @@ fun HomePage(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        painter = painterResource(R.drawable.round_keyboard_double_arrow_down_24),
-                        tint = animatePullToRefresh.value,
-                        contentDescription = null
+                    GlowingIcon(
+                        imageVector = painterResource(R.drawable.round_keyboard_double_arrow_down_24),
+                        contentDescription = null,
+                        glowColor = animatePullToRefreshGlow.value,
+                        glowRadius = 5.dp,
+                        iconTint = animatePullToRefresh.value
                     )
                     Text(
                         "Pull to refresh",
                         fontWeight = FontWeight.Bold,
-                        color = animatePullToRefresh.value
+                        color = animatePullToRefresh.value,
+                        style = MaterialTheme.typography.titleMedium.copy( shadow = Shadow(
+                            color = animatePullToRefreshGlow.value,
+                            offset = Offset(0f, 0f),
+                            blurRadius = 15f
+                        ) )
                     )
                 }
             }
@@ -283,7 +299,19 @@ fun HomePage(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .heightIn(100.dp)
-                                .weight(1f),
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xff313131))
+                                .border(
+                                    shape = RoundedCornerShape(12.dp),
+                                    width = 2.dp,
+                                    brush = Brush.verticalGradient(
+                                        listOf(
+                                            Color.White.copy(0.5f),
+                                            Color.White.copy(0.2f)
+                                        )
+                                    )
+                                ),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.SpaceEvenly
                         ) {
@@ -317,7 +345,19 @@ fun HomePage(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .heightIn(100.dp)
-                                .weight(1f),
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xff313131))
+                                .border(
+                                    shape = RoundedCornerShape(12.dp),
+                                    width = 2.dp,
+                                    brush = Brush.verticalGradient(
+                                        listOf(
+                                            Color.White.copy(0.5f),
+                                            Color.White.copy(0.2f)
+                                        )
+                                    )
+                                ),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.SpaceEvenly
                         ) {
@@ -424,10 +464,8 @@ fun HomePage(
 fun BottomNavigationSection(
     modifier: Modifier = Modifier,
     hazeState: HazeState,
-    viewModel: ActivityViewModel,
     navController: NavController
 ) {
-
 
     val items = listOf(
         "Settings" to R.drawable.settings_02,
@@ -436,7 +474,7 @@ fun BottomNavigationSection(
         "Home" to R.drawable.home_05
     )
     val animatedSelectedTabIndex by animateFloatAsState(
-        targetValue = items.indexOf(items.find { it.first == ActivityViewModel.selectedItem.value })
+        targetValue = items.indexOf(items.find { it.first == ActivityViewModel.currentScreen.value })
             .toFloat(),
         label = "animatedSelectedTabIndex",
         animationSpec = spring(
@@ -476,7 +514,7 @@ fun BottomNavigationSection(
 
 
                 if (items.any { it.first == currentRoute.toString() })
-                    ActivityViewModel.selectedItem.value = currentRoute.toString()
+                    ActivityViewModel.currentScreen.value = currentRoute.toString()
 
 
                 NavigationBarItem(
@@ -490,14 +528,14 @@ fun BottomNavigationSection(
                         disabledIconColor = Color.Transparent,
                         disabledTextColor = Color.Transparent
                     ),
-                    selected = ActivityViewModel.selectedItem.value == destination,
+                    selected = ActivityViewModel.currentScreen.value == destination,
                     onClick = {
 
                         when (destination) {
 
                             "Home" -> {
 
-                                if (ActivityViewModel.selectedItem.value != destination)
+                                if (ActivityViewModel.currentScreen.value != destination)
                                     navController.navigate(DestinationRoutes.HOME_SCREEN.route) {
                                         popUpTo(DestinationRoutes.HOME_SCREEN.route)
                                         launchSingleTop = true
@@ -506,7 +544,7 @@ fun BottomNavigationSection(
                             }
 
                             "Search" -> {
-                                if (ActivityViewModel.selectedItem.value != destination)
+                                if (ActivityViewModel.currentScreen.value != destination)
                                     navController.navigate("SEARCH_SCREEN") {
                                         launchSingleTop = true
                                         popUpTo(DestinationRoutes.SEARCH_SCREEN.route) {
@@ -520,7 +558,7 @@ fun BottomNavigationSection(
                             "Settings" -> {}
                             "Locations" -> {}
                         }
-                        ActivityViewModel.selectedItem.value = destination
+                        ActivityViewModel.currentScreen.value = destination
                     },
                     icon = {
                         Icon(
@@ -580,7 +618,18 @@ fun DetailSection(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceEvenly,
-            modifier = modifier
+            modifier = modifier.clip(RoundedCornerShape(12.dp))
+            .background(Color(0xff313131))
+            .border(
+                shape = RoundedCornerShape(12.dp),
+                width = 2.dp,
+                brush = Brush.verticalGradient(
+                    listOf(
+                        Color.White.copy(0.5f),
+                        Color.White.copy(0.2f)
+                    )
+                )
+            )
         ) {
 
             Row(
@@ -768,7 +817,7 @@ fun DetailSection(
                         Modifier
                             .background(
                                 brush = Brush.verticalGradient(
-                                    listOf<Color>(
+                                    listOf(
                                         Color(
                                             0xFF2a2a2a
                                         ), Color(0xff1e1e1e)
@@ -807,7 +856,7 @@ fun DetailSection(
                         weatherStatus = item.first,
                         weatherLabel = item.third,
                         iconAtTop = true,
-                        modifier = Modifier
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
@@ -825,7 +874,7 @@ fun DetailSection(
                         weatherStatus = item.first,
                         weatherLabel = item.third,
                         iconAtTop = true,
-                        modifier = Modifier
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
@@ -848,6 +897,18 @@ fun NextHoursForecastSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 30.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xff313131))
+                .border(
+                    shape = RoundedCornerShape(12.dp),
+                    width = 2.dp,
+                    brush = Brush.verticalGradient(
+                        listOf(
+                            Color.White.copy(0.5f),
+                            Color.White.copy(0.2f)
+                        )
+                    )
+                )
         ) {
             Row(
                 modifier
@@ -928,26 +989,38 @@ fun NextHoursForecastSection(
                     "Today",
                     fontWeight = FontWeight.ExtraBold,
                     style = MaterialTheme.typography.headlineSmall,
-                    color = Color.White
+                    color = Color.White.copy(0.75f)
                 )
                 if (showNextDaysButton)
                     TextButton(
-                        onClick = { navController.navigate(DestinationRoutes.NEXT_DAYS_SCREEN.route) },
+                        onClick = {
+                            if (ActivityViewModel.currentScreen.value == "Home")
+                            navController.navigate(DestinationRoutes.NEXT_DAYS_SCREEN_HOME.route)
+                            else if (ActivityViewModel.currentScreen.value == "Search")
+                                navController.navigate(DestinationRoutes.NEXT_DAYS_SCREEN_SEARCH.route)
+                        },
                         interactionSource = null,
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
                     ) {
                         Text(
-                            style = MaterialTheme.typography.labelLarge,
+                            style = MaterialTheme.typography.labelLarge.copy( shadow = Shadow(
+                                color = MaterialTheme.colorScheme.primary,
+                                offset = Offset(0f, 0f),
+                                blurRadius = 12f
+                            )),
                             color = MaterialTheme.colorScheme.primary,
                             text = "Next 2 Days",
                             fontWeight = FontWeight.Bold,
                             fontFamily = fontFamily,
-                            modifier = Modifier
+                            modifier = Modifier,
+
                         )
-                        Icon(
-                            painter = painterResource(R.drawable.chevron_right),
-                            contentDescription = "Next 2 Days",
-                            tint = MaterialTheme.colorScheme.primary
+                        GlowingIcon(
+                            imageVector = painterResource(R.drawable.round_keyboard_arrow_right_24),
+                            contentDescription = null,
+                            glowColor = MaterialTheme.colorScheme.primary,
+                            glowRadius = 5.dp,
+                            iconTint = MaterialTheme.colorScheme.primary
                         )
                     }
 
@@ -1103,11 +1176,9 @@ fun MainWeatherInfoSection(
     } else {
         ConstraintLayout(
             modifier = modifier
-                .shadow(
-                    10.dp,
-                    ambientColor = Color.Black,
-                    spotColor = Color.Black,
-                    shape = RoundedCornerShape(15.dp)
+                .softLayerShadow(shape = RoundedCornerShape(15.dp), radius = 12.dp, spread = 5.dp, offset = DpOffset(0.dp,12.dp), color = Color(
+                    0xFF0C0C0C
+                )
                 )
                 .clip(RoundedCornerShape(15.dp))
                 .then(
@@ -1142,7 +1213,7 @@ fun MainWeatherInfoSection(
                         blurRadius = 20f
                     )
                 ),
-                color = MaterialTheme.colorScheme.onSurface,
+                color = if (isSystemInDarkTheme()) Color.White else Color.Black,
                 letterSpacing = TextUnit(3f, TextUnitType.Sp),
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.constrainAs(tempTextPosition) {
@@ -1166,6 +1237,7 @@ fun MainWeatherInfoSection(
                 text = weatherStatus,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
+                color = if (isSystemInDarkTheme()) Color.White else Color.Black,
                 fontFamily = fontFamilyBold,
                 modifier = Modifier.constrainAs(weatherStatusPosition) {
                     top.linkTo(weatherIconPosition.bottom, 8.dp)
@@ -1196,6 +1268,7 @@ fun MainWeatherInfoSection(
             Text(
                 text = "feels like ${feelsLike?.roundToInt()}°",
                 style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.constrainAs(feelsLikeTextPosition) {
                     baseline.linkTo(tempTextPosition.baseline, 26.dp)
                     start.linkTo(tempTextPosition.start)
@@ -1243,6 +1316,7 @@ fun MainWeatherInfoSection(
             Text(
                 text = today,
                 style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
                 letterSpacing = TextUnit(1f, TextUnitType.Sp),
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.constrainAs(dateTextPosition) {
@@ -1255,6 +1329,7 @@ fun MainWeatherInfoSection(
                 letterSpacing = TextUnit(0.5f, TextUnitType.Sp),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.constrainAs(locationTextPosition) {
                     top.linkTo(locationIconPosition.bottom)
                     bottom.linkTo(locationIconPosition.top)
@@ -1277,6 +1352,7 @@ fun MainWeatherInfoSection(
                     }
 
                 TextButton(
+                    interactionSource = null,
                     onClick = { showChangeLocationBottomSheet.value = true },
                     modifier = Modifier.constrainAs(changeLocationTextPosition) {
 
@@ -1287,15 +1363,21 @@ fun MainWeatherInfoSection(
                     }) {
                     Text(
                         "Change Location",
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            shadow = Shadow(
+                                color = MaterialTheme.colorScheme.primary,
+                                offset = Offset(0f, 0f),
+                                blurRadius = 12f
+                            )
+                        ),
                         fontWeight = FontWeight.Bold
                     )
-                    Icon(
-                        Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                        contentDescription = "",
-                        modifier = Modifier
-                            .padding(top = 2.dp)
-                            .rotate(90f)
+                    GlowingIcon(
+                        imageVector = painterResource(R.drawable.round_keyboard_arrow_down_24),
+                        contentDescription = null,
+                        glowColor = MaterialTheme.colorScheme.primary,
+                        glowRadius = 5.dp,
+                        iconTint = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -1435,7 +1517,7 @@ fun AirQualitySection(
                     text = stringResource(R.string.air_quality),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White.copy(0.75f)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(Modifier.height(18.dp))
                 Box(
@@ -1490,62 +1572,66 @@ fun AirQualitySection(
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp),
                     text = airPollutionDetail,
+                    fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
                     color = airPollutionTextColor,
                 )
                 Spacer(Modifier.height(24.dp))
                 Row(
                     Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(
-                        60.dp,
-                        alignment = Alignment.CenterHorizontally
-                    ),
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.SpaceBetween
+                        verticalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.weight(1f)
                     ) {
                         Text(
                             "${airQuality?.co?.roundToInt()}/m³",
-                            style = MaterialTheme.typography.titleLarge
+                            fontSize = 19.sp,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
                             "CO",
-                            color = Color.White.copy(0.5f),
+                            color = MaterialTheme.colorScheme.onSurface.copy(0.4f),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.SpaceBetween
+                        verticalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.weight(1f)
                     ) {
                         Text(
                             "${airQuality?.o3?.roundToInt()}/m³",
-                            style = MaterialTheme.typography.titleLarge
+                            fontSize = 19.sp,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
                             "O3",
-                            color = Color.White.copy(0.5f),
+                            color = MaterialTheme.colorScheme.onSurface.copy(0.4f),
                             style = MaterialTheme.typography.bodyMedium
+
                         )
                     }
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.SpaceBetween
+                        verticalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.weight(1f)
                     ) {
                         Text(
                             "${airQuality?.no2?.roundToInt()}/m³",
-                            style = MaterialTheme.typography.titleLarge
+                            fontSize = 19.sp,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
                             "NO2",
-                            color = Color.White.copy(0.5f),
+                            color = MaterialTheme.colorScheme.onSurface.copy(0.4f),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -1555,54 +1641,57 @@ fun AirQualitySection(
                     Modifier
                         .fillMaxWidth()
                         .padding(bottom = 24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(
-                        70.dp,
-                        alignment = Alignment.CenterHorizontally
-                    ),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.SpaceBetween
+                        verticalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.weight(1f)
                     ) {
                         Text(
                             "${airQuality?.so2?.roundToInt()}/m³",
-                            style = MaterialTheme.typography.titleLarge
+                            fontSize = 19.sp,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
                             "SO2",
-                            color = Color.White.copy(0.5f),
+                            color = MaterialTheme.colorScheme.onSurface.copy(0.4f),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.SpaceBetween
+                        verticalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.weight(1f)
                     ) {
                         Text(
                             "${airQuality?.pm25?.roundToInt()}/m³",
-                            style = MaterialTheme.typography.titleLarge
+                            fontSize = 19.sp,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
                             "pm2.5",
-                            color = Color.White.copy(0.5f),
+                            color = MaterialTheme.colorScheme.onSurface.copy(0.4f),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.SpaceBetween
+                        verticalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.weight(1f)
                     ) {
                         Text(
                             text = "${airQuality?.pm10?.roundToInt()}/m³",
-                            style = MaterialTheme.typography.titleLarge
+                            fontSize = 19.sp,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
                             "pm10",
-                            color = Color.White.copy(0.5f),
+                            color = MaterialTheme.colorScheme.onSurface.copy(0.4f),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -1613,10 +1702,17 @@ fun AirQualitySection(
                 modifier = modifier
                     .fillMaxWidth()
                     .padding(horizontal = 30.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xff313131))
                     .border(
+                        shape = RoundedCornerShape(12.dp),
                         width = 2.dp,
-                        color = Color.White.copy(0.4f),
-                        shape = RoundedCornerShape(20.dp)
+                        brush = Brush.verticalGradient(
+                            listOf(
+                                Color.White.copy(0.5f),
+                                Color.White.copy(0.2f)
+                            )
+                        )
                     ),
                 verticalArrangement = Arrangement.spacedBy(18.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -1836,22 +1932,24 @@ fun AstrosSection(
             verticalArrangement = Arrangement.SpaceAround
         ) {
             Icon(
+                tint = MaterialTheme.colorScheme.onSurface.copy(0.7f),
                 painter = painterResource(R.drawable.sunset),
                 contentDescription = "sunrise",
                 modifier = Modifier
-                    .padding(8.dp)
+                    .padding(4.dp)
                     .size(40.dp)
             )
             Text(
                 sunrise,
                 letterSpacing = 3.sp,
-                style = MaterialTheme.typography.titleLarge
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             Text(
                 "sunrise",
                 modifier = Modifier.padding(bottom = 8.dp),
-                color = Color.White.copy(0.5f)
+                color = MaterialTheme.colorScheme.onSurface.copy(0.4f)
             )
         }
         Spacer(Modifier.weight(0.2f))
@@ -1882,16 +1980,17 @@ fun AstrosSection(
             verticalArrangement = Arrangement.SpaceEvenly
         ) {
             Icon(
+                tint = MaterialTheme.colorScheme.onSurface.copy(0.7f),
                 painter = painterResource(R.drawable.moonset),
                 contentDescription = "sunrise",
                 modifier = Modifier
-                    .padding(8.dp)
+                    .padding(4.dp)
                     .size(40.dp)
             )
 
             Text(
                 sunset,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.titleLarge,
                 letterSpacing = 3.sp
             )
@@ -1899,7 +1998,7 @@ fun AstrosSection(
             Text(
                 "sunset",
                 modifier = Modifier.padding(bottom = 8.dp),
-                color = Color.White.copy(0.5f)
+                color = MaterialTheme.colorScheme.onSurface.copy(0.4f)
             )
         }
 

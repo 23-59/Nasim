@@ -71,7 +71,8 @@ dependencies {
     implementation libs.androidx.core.splashscreen.v120alpha02
     implementation(libs.kotlinx.datetime)
     implementation(libs.coil.compose)
-    def ktorVersion = '3.1.3'
+    implementation(libs.composeshadowsplus)
+    def ktorVersion = '3.2.0'
     implementation(libs.ktor.client.android)
     implementation("io.ktor:ktor-client-core:$ktorVersion")
     implementation libs.ktor.client.serialization
@@ -79,7 +80,7 @@ dependencies {
     implementation libs.ktor.serialization.kotlinx.json
     implementation libs.ktor.client.content.negotiation
 
-    def room_version = '2.7.1'
+    def room_version = '2.7.2'
     implementation libs.androidx.navigation.compose
     implementation libs.androidx.constraintlayout.compose
     implementation libs.androidx.room.runtime

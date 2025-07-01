@@ -7,7 +7,6 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
@@ -19,14 +18,15 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -54,7 +54,11 @@ import com.golden_minute.nasim.presentation.onboarding.WelcomeScreen
 import com.golden_minute.nasim.presentation.search.SearchScreen
 import com.golden_minute.nasim.presentation.search.SearchScreenViewModel
 import com.golden_minute.nasim.presentation.utils.DestinationRoutes
+import com.golden_minute.nasim.presentation.utils.LoadingScreen
+import com.golden_minute.nasim.presentation.utils.oneTimeShimmer
 import com.golden_minute.nasim.ui.theme.NasimTheme
+import com.golden_minute.nasim.ui.theme.highlightColor
+import com.golden_minute.nasim.ui.theme.textColor
 import dev.chrisbanes.haze.rememberHazeState
 import org.koin.androidx.compose.koinViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -93,18 +97,20 @@ class MainActivity : ComponentActivity() {
 
                 Scaffold(
                     modifier = Modifier
-                        .fillMaxSize()) { systemBarsPadding ->
+                        .fillMaxSize()
+                ) { systemBarsPadding ->
                     val startDestination = if (viewModel.lat != 0.0 && viewModel.lon != 0.0)
                         "CORE_HOME_SCREEN"
                     else
                         DestinationRoutes.WELCOME_SCREEN.route
 
-                        AnimatedVisibility(
-                            viewModel.lat != 0.0 && viewModel.lon != 0.0 && IsDisconnected.isDisconnected.value.isBlank(),
-                            enter = fadeIn(), exit = fadeOut()
-                        ) {
 
-                            Box(Modifier.fillMaxSize()){
+                    AnimatedContent(
+                        targetState = IsDisconnected.isDisconnected.value.isBlank(),
+                    ) { displayContent ->
+                        if (displayContent) {
+
+                            Box(Modifier.fillMaxSize()) {
                                 NavHost(
                                     navController = navController,
                                     startDestination = startDestination,
@@ -119,9 +125,10 @@ class MainActivity : ComponentActivity() {
                                     ) {
 
                                         composable(route = DestinationRoutes.SEARCH_SCREEN.route) { backStackEntry ->
-                                            val backStackEntryForViewModel = remember(backStackEntry) {
-                                                navController.getBackStackEntry("SEARCH_SCREEN")
-                                            }
+                                            val backStackEntryForViewModel =
+                                                remember(backStackEntry) {
+                                                    navController.getBackStackEntry("SEARCH_SCREEN")
+                                                }
                                             val searchScreenViewModel: SearchScreenViewModel =
                                                 koinViewModel(viewModelStoreOwner = backStackEntryForViewModel)
 
@@ -141,7 +148,8 @@ class MainActivity : ComponentActivity() {
 
                                             val searchScreenViewModel: SearchScreenViewModel =
                                                 koinViewModel(viewModelStoreOwner = backStackForViewModel)
-                                            val activityViewModel2: ActivityViewModel = koinViewModel()
+                                            val activityViewModel2: ActivityViewModel =
+                                                koinViewModel()
 
 
                                             activityViewModel2.lat =
@@ -150,7 +158,7 @@ class MainActivity : ComponentActivity() {
                                                 searchScreenViewModel.weatherState.value?.location?.lon!!
                                             activityViewModel2.getWeather(
                                                 activityViewModel2.lat,
-                                                activityViewModel2.lon
+                                                activityViewModel2.lon,
                                             )
 
 
@@ -222,6 +230,45 @@ class MainActivity : ComponentActivity() {
                                                 }
                                             }
                                         }
+
+                                        composable(route = DestinationRoutes.NEXT_DAYS_SCREEN_SEARCH.route) { backstackEntry ->
+
+                                            val backStackForViewModel = remember(backstackEntry) {
+                                                navController.getBackStackEntry("SEARCH_SCREEN")
+                                            }
+
+                                            val searchScreenViewModel: SearchScreenViewModel =
+                                                koinViewModel(viewModelStoreOwner = backStackForViewModel)
+                                            val activityViewModel2: ActivityViewModel =
+                                                koinViewModel()
+
+
+                                            activityViewModel2.lat =
+                                                searchScreenViewModel._weatherState.value?.location?.lat!!
+                                            activityViewModel2.lon =
+                                                searchScreenViewModel.weatherState.value?.location?.lon!!
+                                            activityViewModel2.getWeather(
+                                                activityViewModel2.lat,
+                                                activityViewModel2.lon,
+                                            )
+
+                                            AnimatedContent(activityViewModel2.forecastDays) { forecastDays ->
+                                                if (forecastDays.isNotEmpty()) {
+                                                    NextDaysScreen(
+                                                        modifier = Modifier,
+                                                        navController = navController,
+                                                        activityViewModel = activityViewModel2,
+                                                        hazeState = hazeStateForNavigationBar
+                                                    )
+                                                }
+                                                else {
+                                                    LoadingScreen()
+                                                }
+                                            }
+
+
+
+                                        }
                                     }
 
                                     navigation(
@@ -233,74 +280,27 @@ class MainActivity : ComponentActivity() {
                                                 viewModel.getWeather()
                                             }
 
-                                            AnimatedContent(IsDisconnected.isDisconnected, label = "") {
+                                            AnimatedContent(
+                                                IsDisconnected.isDisconnected.value,
+                                                label = ""
+                                            ) {
 
-                                                if (it.value.isBlank())
-                                                    HomePage(
-                                                        modifier = Modifier,
-                                                        activityViewModel = viewModel,
-                                                        navController = navController,
-                                                        hazeState = hazeStateForNavigationBar,
-                                                        paddingValues = systemBarsPadding
-                                                    )
-                                                else
-                                                    Column(
-                                                        Modifier.fillMaxSize(),
-                                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                                        verticalArrangement = Arrangement.spacedBy(
-                                                            24.dp,
-                                                            Alignment.CenterVertically
-                                                        )
-                                                    ) {
-                                                        Image(
-                                                            painter = painterResource(R.drawable.disconnected),
-                                                            contentDescription = "disconnected",
-                                                            modifier = Modifier.size(90.dp)
-                                                        )
-                                                        Text(
-                                                            "No internet connection!",
-                                                            letterSpacing = 1.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = Color.White,
-                                                            modifier = Modifier
-                                                                .fillMaxWidth()
-                                                                .padding(horizontal = 24.dp),
-                                                            textAlign = TextAlign.Center,
-                                                            style = MaterialTheme.typography.headlineMedium
-                                                        )
-                                                        Text(
-                                                            IsDisconnected.isDisconnected.value,
-                                                            fontWeight = FontWeight.Bold,
-                                                            letterSpacing = 1.sp,
-                                                            style = MaterialTheme.typography.headlineSmall,
-                                                            textAlign = TextAlign.Center,
-                                                            modifier = Modifier
-                                                                .fillMaxWidth()
-                                                                .padding(horizontal = 24.dp)
-                                                        )
-                                                        OutlinedButton(
-                                                            modifier = Modifier
-                                                                .fillMaxWidth()
-                                                                .padding(horizontal = 24.dp),
-                                                            shape = RoundedCornerShape(10.dp),
-                                                            onClick = {
-                                                                viewModel.getWeather()
-                                                            }) {
-                                                            Icon(
-                                                                Icons.Default.Refresh,
-                                                                contentDescription = "refresh"
-                                                            )
-                                                            Spacer(Modifier.width(4.dp))
-                                                            Text(
-                                                                "Reload",
-                                                                fontWeight = FontWeight.Bold,
-                                                                style = MaterialTheme.typography.headlineSmall
-                                                            )
-                                                        }
-                                                    }
+                                                Log.i(
+                                                    TAG,
+                                                    "onCreate: disconnected values is equal to : $it"
+                                                )
+
+                                                HomePage(
+                                                    modifier = Modifier,
+                                                    activityViewModel = viewModel,
+                                                    navController = navController,
+                                                    hazeState = hazeStateForNavigationBar,
+                                                    paddingValues = systemBarsPadding
+                                                )
+
                                             }
                                         }
-                                        composable(route = DestinationRoutes.NEXT_DAYS_SCREEN.route) {
+                                        composable(route = DestinationRoutes.NEXT_DAYS_SCREEN_HOME.route) {
 
                                             val localViewModel: ActivityViewModel = koinViewModel()
                                             LaunchedEffect(Unit) {
@@ -310,17 +310,24 @@ class MainActivity : ComponentActivity() {
                                                     isInNextDaysScreen = true
                                                 )
                                             }
-                                            Log.i("MainActivity", "onCreate: ${localViewModel.weatherState}")
+                                            Log.i(
+                                                "MainActivity",
+                                                "onCreate: ${localViewModel.weatherState}"
+                                            )
 
-                                            if (localViewModel.forecastDays.isNotEmpty())
-                                                NextDaysScreen(
-                                                    modifier = Modifier,
-                                                    navController = navController,
-                                                    activityViewModel = localViewModel,
-                                                    hazeState = hazeStateForNavigationBar
-                                                )
+                                            AnimatedContent(localViewModel.forecastDays) { forecastDay ->
 
 
+                                                if (forecastDay.isNotEmpty())
+                                                    NextDaysScreen(
+                                                        modifier = Modifier,
+                                                        navController = navController,
+                                                        activityViewModel = localViewModel,
+                                                        hazeState = hazeStateForNavigationBar
+                                                    )
+                                                else
+                                                    LoadingScreen()
+                                            }
                                         }
                                     }
 
@@ -334,18 +341,85 @@ class MainActivity : ComponentActivity() {
                                     }
 
                                 }
-
-                                BottomNavigationSection(
-                                    viewModel = viewModel,
-                                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp, start = 16.dp, end = 16.dp).clip(
-                                        RoundedCornerShape(15.dp)),
-                                    hazeState = hazeStateForNavigationBar,
-                                    navController = navController,
-                                )
+                                if (startDestination == "CORE_HOME_SCREEN")
+                                    BottomNavigationSection(
+                                        modifier = Modifier
+                                            .align(Alignment.BottomCenter)
+                                            .padding(
+                                                bottom = WindowInsets.navigationBars.asPaddingValues()
+                                                    .calculateBottomPadding() + 16.dp,
+                                                start = 16.dp,
+                                                end = 16.dp
+                                            )
+                                            .clip(
+                                                RoundedCornerShape(15.dp)
+                                            ),
+                                        hazeState = hazeStateForNavigationBar,
+                                        navController = navController,
+                                    )
 
                             }
+                        } else {
+                            Column(
+                                Modifier.fillMaxSize(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(
+                                    24.dp,
+                                    Alignment.CenterVertically
+                                )
+                            ) {
+                                Image(
+                                    painter = painterResource(R.drawable.disconnected),
+                                    contentDescription = "disconnected",
+                                    modifier = Modifier.size(90.dp)
+                                )
+                                Text(
+                                    "No internet connection!",
+                                    letterSpacing = 1.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 24.dp),
+                                    textAlign = TextAlign.Center,
+                                    style = MaterialTheme.typography.headlineMedium
+                                )
+                                Text(
+                                    IsDisconnected.isDisconnected.value,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.sp,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 24.dp)
+                                )
+                                OutlinedButton(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 24.dp),
+                                    shape = RoundedCornerShape(10.dp),
+                                    onClick = {
+                                        viewModel.getWeather()
+                                    }) {
+                                    Icon(
+                                        Icons.Default.Refresh,
+                                        contentDescription = "refresh"
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(
+                                        "Reload",
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.headlineSmall
+                                    )
+                                }
+                            }
+
+
                         }
 
+
+                    }
 
 
                 }

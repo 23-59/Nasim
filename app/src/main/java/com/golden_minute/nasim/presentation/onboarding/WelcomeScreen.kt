@@ -75,13 +75,10 @@ fun WelcomeScreen(
 ) {
     val hazeState = rememberHazeState()
     NasimTheme {
-        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-
 
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .hazeEffect(state = hazeState, style = HazeStyle(backgroundColor = Color.Black,tint = null, noiseFactor = 0f)),
+                    .fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
             ) {
                 Spacer(
@@ -264,7 +261,7 @@ fun WelcomeScreen(
 
             }
 
-        }
+
     }
 
 

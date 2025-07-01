@@ -124,7 +124,7 @@ fun NextDaysScreen(
                                 ), shape = RoundedCornerShape(15.dp)
                             )
                             .clip(RoundedCornerShape(15.dp))
-                            .border(0.5.dp, selectedDay, RoundedCornerShape(15.dp))
+                            .border(2.dp, selectedDay, RoundedCornerShape(15.dp))
                             .weight(1f)
                             .clickable(interactionSource = null, indication = null) {
                                 selectedIndex = index
@@ -169,7 +169,7 @@ fun NextDaysScreen(
                     feelsLike = activityViewModel.weatherState.value!!.current?.feelslikeC!!,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 30.dp),
+                        .padding(start = 30.dp, end = 30.dp, bottom = 8.dp, top = 8.dp),
                     onSearchItemClicked = {},
                     navController = navController,
                     isDay = activityViewModel.weatherState.value!!.current!!.isDay,

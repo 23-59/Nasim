@@ -27,6 +27,7 @@ val appModule = module {
 
     viewModel<WelcomeScreenViewModel> { WelcomeScreenViewModel(androidApplication(), get(), get()) }
 
+
     viewModel<SearchScreenViewModel> { SearchScreenViewModel(get()) }
 
     single<CoordinateDataStore> { CoordinateDataStore(androidApplication()) }
