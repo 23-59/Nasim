@@ -19,26 +19,27 @@ import com.golden_minute.nasim.domain.model.weather_response.ForecastDayItem
 import com.golden_minute.nasim.domain.model.weather_response.WeatherResponse
 import com.golden_minute.nasim.domain.use_case.AppUseCases
 import com.golden_minute.nasim.presentation.utils.getWeatherAppearance
-import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.math.roundToInt
+import kotlin.time.ExperimentalTime
 
-private const val TAG = "ActivityViewModel"
+internal const val TAG = "ActivityViewModel"
 
 object IsDisconnected {
     var isDisconnected = mutableStateOf("")
 }
 
-class ActivityViewModel (
+
+class ActivityViewModel(
     application: Application,
     private val appUseCases: AppUseCases,
     private val coordinateDataStore: CoordinateDataStore
@@ -46,9 +47,8 @@ class ActivityViewModel (
     ViewModel() {
     var lat by mutableDoubleStateOf(0.0)
     var lon by mutableDoubleStateOf(0.0)
-    var hazeState = HazeState()
-    val hazeStateForSystemBars = HazeState()
-    val hazeStateForBottomNavigation = HazeState()
+
+
 
     var forecastDays = mutableStateListOf<ForecastDayItem>()
 
@@ -64,7 +64,8 @@ class ActivityViewModel (
 
     companion object {
         @JvmStatic
-        var selectedItem = mutableStateOf("Home")
+        var currentScreen = mutableStateOf("Home")
+        var animatePullToRefresh by mutableStateOf(true)
     }
 
 
@@ -90,7 +91,10 @@ class ActivityViewModel (
         }
     }
 
-
+    /**
+     * fetches weather data based on latitude and longitude values that are previously stored in the data store
+     */
+    @OptIn(ExperimentalTime::class)
     fun getWeather(days: Int = 3) {
         _contentIsLoaded.value = false
 
@@ -109,9 +113,9 @@ class ActivityViewModel (
                 is WeatherResponseType.OK -> {
                     weatherState.value = result.response
 
-                        forecastDays =
-                            result.response.forecast?.forecastday!!.filterIndexed { index, _ -> index != 0 }
-                                .toMutableStateList()
+                    forecastDays =
+                        result.response.forecast?.forecastday!!.filterIndexed { index, _ -> index != 0 }
+                            .toMutableStateList()
                     withContext(Dispatchers.Main) {
                         IsDisconnected.isDisconnected.value = ""
                     }
@@ -270,6 +274,7 @@ class ActivityViewModel (
      * @param isInNextDaysScreen A boolean indicating whether the function is called from the "Next Days" screen.
      *                           If true, it will update the UI to display information for the first forecast day.
      */
+    @OptIn(ExperimentalTime::class)
     fun getWeather(lat: Double, lon: Double, days: Int = 3, isInNextDaysScreen: Boolean = false) {
         _contentIsLoaded.value = false
         viewModelScope.launch(Dispatchers.IO) {
@@ -296,7 +301,8 @@ class ActivityViewModel (
                         _contentIsLoaded.value = true
                     }
 
-                    val currentTime = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+                    val currentTime =
+                        Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
                     lateinit var firstDayValue: ForecastDayItem
                     result.response.forecast?.forecastday?.forEachIndexed { index, forecastDayItem ->
                         if (index == 0) {
@@ -352,7 +358,7 @@ class ActivityViewModel (
 
                     }
                     if (isInNextDaysScreen)
-                    changeWeatherInfoDay(forecastDays.first().date.substring(8..9).toInt())
+                        changeWeatherInfoDay(forecastDays.first().date.substring(8..9).toInt())
                 }
 
             }

@@ -27,7 +27,7 @@ val Typography = Typography(
         fontWeight = FontWeight.Normal,
         fontSize = 22.sp,
         lineHeight = 28.sp,
-        letterSpacing = 0.sp
+        letterSpacing = 0.sp,
     ),
     labelSmall = TextStyle(
         fontFamily = fontFamily,
@@ -48,3 +48,37 @@ val Typography = Typography(
 
 
 )
+val TypographyDarkTheme = Typography(
+    bodyLarge = TextStyle(
+        fontFamily = fontFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 16.sp,
+        lineHeight = 24.sp,
+        letterSpacing = 0.5.sp
+    ),
+    titleLarge = TextStyle(
+        fontFamily = fontFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 22.sp,
+        lineHeight = 28.sp,
+        letterSpacing = 0.sp,
+    ),
+    labelSmall = TextStyle(
+        fontFamily = fontFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 11.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.5.sp
+    ), headlineSmall = defaultTypography.headlineSmall.copy(fontFamily = fontFamily),
+    headlineMedium = defaultTypography.headlineMedium.copy(fontFamily = fontFamily),
+    headlineLarge = defaultTypography.headlineLarge.copy(fontFamily = fontFamily),
+    displaySmall = defaultTypography.displaySmall.copy(fontFamily = fontFamily),
+    displayMedium = defaultTypography.displayMedium.copy(fontFamily = fontFamily),
+    displayLarge = defaultTypography.displayLarge.copy(fontFamily = fontFamily),
+    titleSmall = defaultTypography.titleSmall.copy(fontFamily = fontFamily),
+    titleMedium = defaultTypography.titleMedium.copy(fontFamily = fontFamily),
+    bodySmall = defaultTypography.bodySmall.copy(fontFamily = fontFamily, letterSpacing = 1.sp),
+    bodyMedium = defaultTypography.bodyMedium.copy(fontFamily = fontFamily),
+
+
+    )

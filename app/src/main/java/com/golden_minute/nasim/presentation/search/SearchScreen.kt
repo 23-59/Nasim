@@ -57,9 +57,9 @@ import com.golden_minute.nasim.R
 import com.golden_minute.nasim.presentation.main.ActivityViewModel
 import com.golden_minute.nasim.presentation.main.IsDisconnected
 import com.golden_minute.nasim.presentation.main.MainWeatherInfoSection
-import com.golden_minute.nasim.presentation.utils.glassmorphicStatusBar
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.haze
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -71,9 +71,10 @@ fun SearchScreen(
     modifier: Modifier = Modifier,
     searchScreenViewModel: SearchScreenViewModel,
     activityViewModel: ActivityViewModel,
+    hazeStateForNavigationBar: HazeState,
     navController: NavController
 ) {
-    val hazeState = remember { HazeState() }
+    val hazeState = rememberHazeState()
 
     var showClearButton by remember { mutableStateOf(false) }
 
@@ -88,6 +89,7 @@ fun SearchScreen(
     LaunchedEffect(enteredText) {
         debounceJob?.cancel()
 
+        if (enteredText.isNotBlank())
         debounceJob = coroutineScope.launch {
             delay(2000)
             withContext(Dispatchers.Main) {
@@ -104,13 +106,14 @@ fun SearchScreen(
             }
 
         }
+        else
+            searchScreenViewModel.onEvent(SearchScreenEvents.OnClearTextField)
     }
-
 
     Box(
         Modifier
             .fillMaxSize()
-            .haze(activityViewModel.hazeStateForBottomNavigation)
+            .hazeSource(hazeStateForNavigationBar)
     ) {
 
 
@@ -122,7 +125,7 @@ fun SearchScreen(
                     contentScale = ContentScale.FillBounds,
                     modifier = Modifier
                         .fillMaxSize()
-                        .haze(hazeState)
+                        .hazeSource(hazeState)
 
                 )
 
@@ -158,7 +161,6 @@ fun SearchScreen(
                                location =  "${weatherItem.location!!.name}, ${weatherItem.location.country}",
                                temp =  weatherItem.current.tempC,
                                feelsLike =  weatherItem.current.feelslikeC,
-                               hazeState =  hazeState,
                                modifier =  Modifier.fillMaxWidth().padding(horizontal = 30.dp, vertical = 12.dp),
                                 navController = navController,
                                 onSearchItemClicked = {
@@ -176,8 +178,9 @@ fun SearchScreen(
                     TextField(
                         value = enteredText,
                         onValueChange = {
-                            enteredText = it
-                            showClearButton = true
+                                enteredText = it
+                                showClearButton = true
+
                         },
                         trailingIcon = {
                             AnimatedContent(targetState = searchScreenViewModel.showClearButton.value) { showClear ->
@@ -240,7 +243,6 @@ fun SearchScreen(
 
                 Box(
                     Modifier
-                        .glassmorphicStatusBar(activityViewModel.hazeStateForBottomNavigation)
                         .align(Alignment.TopCenter)
                 )
             } else

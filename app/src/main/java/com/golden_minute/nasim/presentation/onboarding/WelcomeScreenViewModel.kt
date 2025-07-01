@@ -17,6 +17,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private const val TAG = "WelcomeScreenViewModel"
 
@@ -47,11 +48,16 @@ class WelcomeScreenViewModel (
 
                     when (val result = useCases.getSearchedCitiesInfo(event.searchValue)) {
 
-                        is CoordinateResponseType.Error -> Toast.makeText(
-                            app.baseContext,
-                            result.error,
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        is CoordinateResponseType.Error -> {
+                            if (event.searchValue.isNotBlank())
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(
+                                    app.baseContext,
+                                    result.error,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
 
                         is CoordinateResponseType.OK -> {
                             if (event.searchValue.isNotBlank()) {

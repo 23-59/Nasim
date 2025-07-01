@@ -3,6 +3,7 @@ package com.golden_minute.nasim.presentation.main
 import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -13,6 +14,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,15 +22,12 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -37,8 +36,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -53,21 +50,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
@@ -76,114 +74,108 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import coil.compose.AsyncImage
+import com.gigamole.composeshadowsplus.rsblur.rsBlurShadow
+import com.gigamole.composeshadowsplus.softlayer.softLayerShadow
 import com.golden_minute.nasim.R
 import com.golden_minute.nasim.domain.model.weather_response.AirQuality
-import com.golden_minute.nasim.presentation.utils.BorderSide
+import com.golden_minute.nasim.presentation.utils.CustomPullToRefresh
 import com.golden_minute.nasim.presentation.utils.DestinationRoutes
+import com.golden_minute.nasim.presentation.utils.GlowingIcon
 import com.golden_minute.nasim.presentation.utils.WeatherDetailElement
 import com.golden_minute.nasim.presentation.utils.getWeatherAppearance
-import com.golden_minute.nasim.presentation.utils.glassEffect
-import com.golden_minute.nasim.presentation.utils.glassmorphicStatusBar
-import com.golden_minute.nasim.presentation.utils.oneSideBorder
+import com.golden_minute.nasim.presentation.utils.oneTimeShimmer
 import com.golden_minute.nasim.presentation.utils.shimmerEffect
 import com.golden_minute.nasim.ui.theme.PrimaryGreen
 import com.golden_minute.nasim.ui.theme.fontFamily
 import com.golden_minute.nasim.ui.theme.fontFamilyBold
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.haze
-import dev.chrisbanes.haze.hazeChild
-import kotlinx.datetime.Clock
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
 import kotlinx.datetime.format.DayOfWeekNames
 import kotlinx.datetime.format.MonthNames
 import kotlinx.datetime.format.char
-import kotlinx.datetime.toLocalDateTime
 import kotlin.math.roundToInt
 
 @Composable
 fun HomePage(
     modifier: Modifier = Modifier,
     hazeState: HazeState,
-    hazeStateForSystemBars: HazeState,
-    hazeStateForNavigationBar: HazeState,
+    paddingValues: PaddingValues,
     activityViewModel: ActivityViewModel,
     navController: NavController
 ) {
     val scrollState = rememberScrollState()
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .haze(hazeStateForNavigationBar)
-    ) {
 
-        AsyncImage(
-            model = activityViewModel.imageRequest,
-            contentDescription = "",
-            contentScale = ContentScale.FillBounds,
-            modifier = Modifier
-                .fillMaxSize()
-                .haze(hazeState)
-        )
+    var isRefreshing by rememberSaveable { mutableStateOf(false) }
 
+    var pullToRefresh by rememberSaveable { mutableStateOf(false) }
+
+    val animatePullToRefresh = animateColorAsState(
+        if (pullToRefresh) MaterialTheme.colorScheme.primary else Color(0xff808080)
+    )
+    val animatePullToRefreshGlow = animateColorAsState(if (pullToRefresh) MaterialTheme.colorScheme.primary else Color.Transparent)
+
+    CustomPullToRefresh(
+        isRefreshing = isRefreshing,
+        pulledToDistance = { pullToRefresh = it },
+        canBePulled = {
+            scrollState.value == 0
+        },
+        onRefresh = {
+            isRefreshing = true
+            activityViewModel.getWeather(activityViewModel.lat, activityViewModel.lon)
+            isRefreshing = false
+
+        }) {
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .haze(hazeStateForNavigationBar)
+                .padding(paddingValues)
                 .verticalScroll(scrollState)
-
-                .padding(
-                    top = WindowInsets.statusBars
-                        .asPaddingValues()
-                        .calculateTopPadding(),
-                    bottom = 160.dp
-                ),
+                .hazeSource(hazeState),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            AnimatedVisibility(
-                activityViewModel.contentIsLoaded.value,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
 
-                Button(
-                    onClick = {
-                        activityViewModel.getWeather(
-                            activityViewModel.lat,
-                            activityViewModel.lon
-                        )
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+            AnimatedVisibility(visible = !isRefreshing) {
+                Row(
                     modifier = Modifier
-                        .padding(start = 24.dp, end = 24.dp, top = 24.dp)
-                        .hazeChild(
-                            hazeState,
-                            style = HazeStyle(
-                                noiseFactor = 0f,
-                                blurRadius = 25.dp,
-                                tint = MaterialTheme.colorScheme.primary.copy(0.3f)
-                            ),
-                            shape = RoundedCornerShape(12.dp)
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp, top = 24.dp)
+                        .oneTimeShimmer(
+                            textColor = Color(0xff808080), highlightColor = Color(
+                                0xFFFFFFFF
+                            ), startAnimation = ActivityViewModel.animatePullToRefresh
                         ),
-                    shape = RoundedCornerShape(12.dp)
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Refresh, contentDescription = "refresh", tint = Color.White)
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        text = "Reload data",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                        color = Color.White,
-                        modifier = Modifier.padding(vertical = 4.dp)
+                    GlowingIcon(
+                        imageVector = painterResource(R.drawable.round_keyboard_double_arrow_down_24),
+                        contentDescription = null,
+                        glowColor = animatePullToRefreshGlow.value,
+                        glowRadius = 5.dp,
+                        iconTint = animatePullToRefresh.value
                     )
-
+                    Text(
+                        "Pull to refresh",
+                        fontWeight = FontWeight.Bold,
+                        color = animatePullToRefresh.value,
+                        style = MaterialTheme.typography.titleMedium.copy( shadow = Shadow(
+                            color = animatePullToRefreshGlow.value,
+                            offset = Offset(0f, 0f),
+                            blurRadius = 15f
+                        ) )
+                    )
                 }
             }
+
+
 
             AnimatedContent(
                 targetState = activityViewModel.contentIsLoaded.value,
@@ -201,10 +193,9 @@ fun HomePage(
                             location = "${activityViewModel.weatherState.value!!.location?.name}, ${activityViewModel.weatherState.value!!.location?.country}",
                             temp = activityViewModel.weatherState.value!!.current?.tempC!!,
                             feelsLike = activityViewModel.weatherState.value!!.current?.feelslikeC!!,
-                            hazeState = hazeState,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 30.dp),
+                                .padding(start = 30.dp, end = 30.dp, bottom = 8.dp),
                             navController = navController,
                             activityViewModel = activityViewModel,
                             day = activityViewModel.weatherState.value!!.location?.localtime?.substring(
@@ -230,7 +221,6 @@ fun HomePage(
                         location = "",
                         temp = 0f,
                         feelsLike = 0f,
-                        hazeState = hazeState,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(30.dp),
@@ -253,7 +243,6 @@ fun HomePage(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 30.dp),
-                        hazeState = hazeState,
                         minTemp = "${
                             activityViewModel.weatherState.value?.forecast?.forecastday?.get(
                                 0
@@ -275,7 +264,6 @@ fun HomePage(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 30.dp),
-                        hazeState = hazeState,
                         minTemp = "",
                         maxTemp = "",
                         windDegree = 0.toString(),
@@ -297,7 +285,6 @@ fun HomePage(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 30.dp),
-                        hazeState = hazeState,
                         sunrise = activityViewModel.weatherState.value?.forecast?.forecastday?.first()?.astro?.sunrise.toString(),
                         sunset = activityViewModel.weatherState.value?.forecast?.forecastday?.first()?.astro?.sunset.toString()
                     )
@@ -313,7 +300,18 @@ fun HomePage(
                                 .fillMaxWidth()
                                 .heightIn(100.dp)
                                 .weight(1f)
-                                .glassEffect(hazeState),
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xff313131))
+                                .border(
+                                    shape = RoundedCornerShape(12.dp),
+                                    width = 2.dp,
+                                    brush = Brush.verticalGradient(
+                                        listOf(
+                                            Color.White.copy(0.5f),
+                                            Color.White.copy(0.2f)
+                                        )
+                                    )
+                                ),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.SpaceEvenly
                         ) {
@@ -348,7 +346,18 @@ fun HomePage(
                                 .fillMaxWidth()
                                 .heightIn(100.dp)
                                 .weight(1f)
-                                .glassEffect(hazeState),
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xff313131))
+                                .border(
+                                    shape = RoundedCornerShape(12.dp),
+                                    width = 2.dp,
+                                    brush = Brush.verticalGradient(
+                                        listOf(
+                                            Color.White.copy(0.5f),
+                                            Color.White.copy(0.2f)
+                                        )
+                                    )
+                                ),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.SpaceEvenly
                         ) {
@@ -389,7 +398,6 @@ fun HomePage(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 30.dp),
-                        hazeState = hazeState,
                         nextHoursForecast = activityViewModel.nextHours,
                         navController = navController
                     )
@@ -397,7 +405,6 @@ fun HomePage(
                     NextHoursForecastSection(
                         isLoading = true,
                         modifier = Modifier,
-                        hazeState = hazeState,
                         navController = navController,
                         nextHoursForecast = listOf(
                             Triple("12°", 0, "12:00"),
@@ -428,8 +435,10 @@ fun HomePage(
                         AirQualitySection(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 30.dp),
-                            hazeState = hazeState,
+                                .padding(
+                                    start = 30.dp,
+                                    end = 30.dp,
+                                ),
                             airQuality = it,
                             activityViewModel = activityViewModel,
                             progressValue = progressValue
@@ -438,38 +447,14 @@ fun HomePage(
                 else
                     AirQualitySection(
                         modifier = Modifier,
-                        hazeState = hazeState,
                         airQuality = null,
                         activityViewModel = activityViewModel,
                         progressValue = progressValue
                     )
 
             }
-
-
+            Spacer(Modifier.height(95.dp))
         }
-        val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-        // glassmorphic status bar
-        Box(
-            modifier = Modifier
-                .glassmorphicStatusBar(hazeStateForSystemBars)
-                .align(Alignment.TopCenter)
-        )
-        // glassmorphic navigation bar
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(
-                    WindowInsets.navigationBars
-                        .asPaddingValues()
-                        .calculateBottomPadding()
-                )
-                .align(Alignment.BottomCenter)
-                .background(MaterialTheme.colorScheme.surface)
-
-
-        )
-
     }
 
 
@@ -479,10 +464,8 @@ fun HomePage(
 fun BottomNavigationSection(
     modifier: Modifier = Modifier,
     hazeState: HazeState,
-    viewModel: ActivityViewModel,
     navController: NavController
 ) {
-
 
     val items = listOf(
         "Settings" to R.drawable.settings_02,
@@ -491,7 +474,7 @@ fun BottomNavigationSection(
         "Home" to R.drawable.home_05
     )
     val animatedSelectedTabIndex by animateFloatAsState(
-        targetValue = items.indexOf(items.find { it.first == ActivityViewModel.selectedItem.value })
+        targetValue = items.indexOf(items.find { it.first == ActivityViewModel.currentScreen.value })
             .toFloat(),
         label = "animatedSelectedTabIndex",
         animationSpec = spring(
@@ -499,25 +482,25 @@ fun BottomNavigationSection(
             dampingRatio = Spring.DampingRatioLowBouncy
         )
     )
-    Box {
-//
-//       Box(Modifier.fillMaxWidth().align(Alignment.BottomCenter).height(140.dp).background(brush = Brush.verticalGradient(endY = 350f,
-//           colors =  listOf(Color.Transparent,Color(0xff131313))
-//       )))
+    Box(modifier) {
+
 
         NavigationBar(
-            tonalElevation = 5.dp,
             containerColor = Color.Transparent,
             windowInsets = WindowInsets(left = 10.dp, right = 10.dp, bottom = 0.dp, top = 0.dp),
-            modifier = modifier
-                .fillMaxWidth()
+            modifier = Modifier
+                .background(Color.Transparent)
                 .height(75.dp)
-
-                .hazeChild(
-                    hazeState,
-                    style = HazeStyle(noiseFactor = 0f, tint = Color.Black.copy(0.17f))
+                .hazeEffect(
+                    state = hazeState,
+                    style = HazeStyle(
+                        backgroundColor = MaterialTheme.colorScheme.background,
+                        tint = HazeTint(Color(0xFF505050).copy(0.25f)),
+                        noiseFactor = 0f
+                    )
                 )
-                .oneSideBorder(Dp.Hairline, Color.White.copy(0.6f), BorderSide.TOP)
+                .clip(RoundedCornerShape(15.dp))
+                .border(1.dp, Color.White.copy(0.2f), RoundedCornerShape(15.dp))
 
 
         ) {
@@ -530,11 +513,12 @@ fun BottomNavigationSection(
             for ((destination, iconId) in items) {
 
 
-                if (items.any{it.first == currentRoute.toString()} )
-                    ActivityViewModel.selectedItem.value = currentRoute.toString()
+                if (items.any { it.first == currentRoute.toString() })
+                    ActivityViewModel.currentScreen.value = currentRoute.toString()
 
 
                 NavigationBarItem(
+                    interactionSource = null,
                     colors = NavigationBarItemColors(
                         selectedIconColor = Color.White,
                         selectedTextColor = Color.White,
@@ -544,14 +528,14 @@ fun BottomNavigationSection(
                         disabledIconColor = Color.Transparent,
                         disabledTextColor = Color.Transparent
                     ),
-                    selected = ActivityViewModel.selectedItem.value == destination,
+                    selected = ActivityViewModel.currentScreen.value == destination,
                     onClick = {
 
                         when (destination) {
 
                             "Home" -> {
 
-                                if (ActivityViewModel.selectedItem.value != destination)
+                                if (ActivityViewModel.currentScreen.value != destination)
                                     navController.navigate(DestinationRoutes.HOME_SCREEN.route) {
                                         popUpTo(DestinationRoutes.HOME_SCREEN.route)
                                         launchSingleTop = true
@@ -560,7 +544,7 @@ fun BottomNavigationSection(
                             }
 
                             "Search" -> {
-                                if (ActivityViewModel.selectedItem.value != destination)
+                                if (ActivityViewModel.currentScreen.value != destination)
                                     navController.navigate("SEARCH_SCREEN") {
                                         launchSingleTop = true
                                         popUpTo(DestinationRoutes.SEARCH_SCREEN.route) {
@@ -574,9 +558,14 @@ fun BottomNavigationSection(
                             "Settings" -> {}
                             "Locations" -> {}
                         }
-                        ActivityViewModel.selectedItem.value = destination
+                        ActivityViewModel.currentScreen.value = destination
                     },
-                    icon = { Icon(painter = painterResource(iconId), contentDescription = destination) },
+                    icon = {
+                        Icon(
+                            painter = painterResource(iconId),
+                            contentDescription = destination
+                        )
+                    },
                     label = {
                         Text(
                             destination,
@@ -593,12 +582,7 @@ fun BottomNavigationSection(
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(
-                    top = 16.dp, bottom = WindowInsets.navigationBars.asPaddingValues()
-                        .calculateBottomPadding()
-                )
                 .height(75.dp)
-                .align(Alignment.BottomCenter)
                 .blur(60.dp)
 
         ) {
@@ -623,7 +607,6 @@ fun BottomNavigationSection(
 fun DetailSection(
     isLoading: Boolean = false,
     modifier: Modifier,
-    hazeState: HazeState,
     minTemp: String,
     maxTemp: String,
     windDegree: String,
@@ -635,8 +618,18 @@ fun DetailSection(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceEvenly,
-            modifier = modifier
-                .glassEffect(hazeState)
+            modifier = modifier.clip(RoundedCornerShape(12.dp))
+            .background(Color(0xff313131))
+            .border(
+                shape = RoundedCornerShape(12.dp),
+                width = 2.dp,
+                brush = Brush.verticalGradient(
+                    listOf(
+                        Color.White.copy(0.5f),
+                        Color.White.copy(0.2f)
+                    )
+                )
+            )
         ) {
 
             Row(
@@ -817,7 +810,27 @@ fun DetailSection(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = modifier
-                .glassEffect(hazeState = hazeState)
+                .shadow(elevation = 5.dp, shape = RoundedCornerShape(15.dp))
+                .clip(RoundedCornerShape(15.dp))
+                .then(
+                    if (isSystemInDarkTheme())
+                        Modifier
+                            .background(
+                                brush = Brush.verticalGradient(
+                                    listOf(
+                                        Color(
+                                            0xFF2a2a2a
+                                        ), Color(0xff1e1e1e)
+                                    )
+                                )
+                            )
+                            .border(0.5.dp, Color(0xff313131), RoundedCornerShape(15.dp))
+                    else
+                        Modifier
+                            .background(MaterialTheme.colorScheme.surface)
+
+                )
+
 
         ) {
             val firstRow = listOf(
@@ -843,7 +856,7 @@ fun DetailSection(
                         weatherStatus = item.first,
                         weatherLabel = item.third,
                         iconAtTop = true,
-                        modifier = Modifier
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
@@ -861,7 +874,7 @@ fun DetailSection(
                         weatherStatus = item.first,
                         weatherLabel = item.third,
                         iconAtTop = true,
-                        modifier = Modifier
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
@@ -875,8 +888,7 @@ fun DetailSection(
 fun NextHoursForecastSection(
     modifier: Modifier = Modifier,
     isLoading: Boolean = true,
-    showNextDaysButton : Boolean = true,
-    hazeState: HazeState,
+    showNextDaysButton: Boolean = true,
     navController: NavController,
     nextHoursForecast: List<Triple<String, Int, String>>,
 ) {
@@ -885,7 +897,18 @@ fun NextHoursForecastSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 30.dp)
-                .glassEffect(hazeState)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xff313131))
+                .border(
+                    shape = RoundedCornerShape(12.dp),
+                    width = 2.dp,
+                    brush = Brush.verticalGradient(
+                        listOf(
+                            Color.White.copy(0.5f),
+                            Color.White.copy(0.2f)
+                        )
+                    )
+                )
         ) {
             Row(
                 modifier
@@ -933,7 +956,27 @@ fun NextHoursForecastSection(
     else
         Column(
             modifier = modifier
-                .glassEffect(hazeState)
+                .shadow(elevation = 5.dp, shape = RoundedCornerShape(15.dp))
+                .clip(RoundedCornerShape(12.dp))
+                .then(
+                    if (isSystemInDarkTheme())
+                        Modifier
+                            .background(
+                                brush = Brush.verticalGradient(
+                                    listOf<Color>(
+                                        Color(
+                                            0xFF2a2a2a
+                                        ), Color(0xff1e1e1e)
+                                    )
+                                )
+                            )
+                            .border(0.5.dp, Color(0xff313131), RoundedCornerShape(15.dp))
+                    else
+                        Modifier
+                            .background(MaterialTheme.colorScheme.surface)
+
+                )
+
         ) {
             Row(
                 Modifier
@@ -946,28 +989,40 @@ fun NextHoursForecastSection(
                     "Today",
                     fontWeight = FontWeight.ExtraBold,
                     style = MaterialTheme.typography.headlineSmall,
-                    color = Color.White
+                    color = Color.White.copy(0.75f)
                 )
                 if (showNextDaysButton)
-                TextButton(
-                    onClick = { navController.navigate(DestinationRoutes.NEXT_DAYS_SCREEN.route) },
-                    interactionSource = null,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
-                ) {
-                    Text(
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        text = "Next 2 Days",
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = fontFamily,
-                        modifier = Modifier
-                    )
-                    Icon(
-                        painter = painterResource(R.drawable.chevron_right),
-                        contentDescription = "Next 2 Days",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
+                    TextButton(
+                        onClick = {
+                            if (ActivityViewModel.currentScreen.value == "Home")
+                            navController.navigate(DestinationRoutes.NEXT_DAYS_SCREEN_HOME.route)
+                            else if (ActivityViewModel.currentScreen.value == "Search")
+                                navController.navigate(DestinationRoutes.NEXT_DAYS_SCREEN_SEARCH.route)
+                        },
+                        interactionSource = null,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
+                    ) {
+                        Text(
+                            style = MaterialTheme.typography.labelLarge.copy( shadow = Shadow(
+                                color = MaterialTheme.colorScheme.primary,
+                                offset = Offset(0f, 0f),
+                                blurRadius = 12f
+                            )),
+                            color = MaterialTheme.colorScheme.primary,
+                            text = "Next 2 Days",
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = fontFamily,
+                            modifier = Modifier,
+
+                        )
+                        GlowingIcon(
+                            imageVector = painterResource(R.drawable.round_keyboard_arrow_right_24),
+                            contentDescription = null,
+                            glowColor = MaterialTheme.colorScheme.primary,
+                            glowRadius = 5.dp,
+                            iconTint = MaterialTheme.colorScheme.primary
+                        )
+                    }
 
             }
             Spacer(Modifier.height(16.dp))
@@ -1008,14 +1063,13 @@ fun MainWeatherInfoSection(
     weatherCode: Int,
     activityViewModel: ActivityViewModel,
     isDay: Int,
-    day:Int,
-    month:Int,
-    year:Int,
+    day: Int,
+    month: Int,
+    year: Int,
     weatherStatus: String,
     location: String,
     temp: Float,
     feelsLike: Float?,
-    hazeState: HazeState,
     modifier: Modifier,
     onSearchItemClicked: () -> Unit = {},
     navController: NavController
@@ -1023,7 +1077,18 @@ fun MainWeatherInfoSection(
     if (isLoading) {
         ConstraintLayout(
             modifier = modifier
-                .glassEffect(hazeState)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xff313131))
+                .border(
+                    shape = RoundedCornerShape(12.dp),
+                    width = 2.dp,
+                    brush = Brush.verticalGradient(
+                        listOf(
+                            Color.White.copy(0.5f),
+                            Color.White.copy(0.2f)
+                        )
+                    )
+                )
         ) {
             val (weatherIconPosition, tempTextPosition, locationIconPosition, weatherStatusPosition, feelsLikeTextPosition, dateTextPosition, locationTextPosition) = createRefs()
 
@@ -1111,14 +1176,44 @@ fun MainWeatherInfoSection(
     } else {
         ConstraintLayout(
             modifier = modifier
-                .glassEffect(hazeState)
+                .softLayerShadow(shape = RoundedCornerShape(15.dp), radius = 12.dp, spread = 5.dp, offset = DpOffset(0.dp,12.dp), color = Color(
+                    0xFF0C0C0C
+                )
+                )
+                .clip(RoundedCornerShape(15.dp))
+                .then(
+                    if (isSystemInDarkTheme())
+                        Modifier
+                            .background(
+                                brush = Brush.verticalGradient(
+                                    listOf<Color>(
+                                        Color(
+                                            0xFF424242
+                                        ), Color(0xff2a2a2a)
+                                    )
+                                )
+                            )
+                            .border(0.5.dp, Color(0xff404040), RoundedCornerShape(15.dp))
+                    else
+                        Modifier
+                            .background(MaterialTheme.colorScheme.surface)
+
+                )
+
 
         ) {
             val (weatherIconPosition, changeLocationTextPosition, tempTextPosition, moreInfoButtonPosition, locationIconPosition, weatherStatusPosition, feelsLikeTextPosition, dateTextPosition, locationTextPosition) = createRefs()
 
             Text(
                 text = "${temp.roundToInt()}°",
-                style = MaterialTheme.typography.displayLarge,
+                style = MaterialTheme.typography.displayLarge.copy(
+                    shadow = Shadow(
+                        color = Color.White,
+                        offset = Offset(0f, 0f),
+                        blurRadius = 20f
+                    )
+                ),
+                color = if (isSystemInDarkTheme()) Color.White else Color.Black,
                 letterSpacing = TextUnit(3f, TextUnitType.Sp),
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.constrainAs(tempTextPosition) {
@@ -1142,6 +1237,7 @@ fun MainWeatherInfoSection(
                 text = weatherStatus,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
+                color = if (isSystemInDarkTheme()) Color.White else Color.Black,
                 fontFamily = fontFamilyBold,
                 modifier = Modifier.constrainAs(weatherStatusPosition) {
                     top.linkTo(weatherIconPosition.bottom, 8.dp)
@@ -1161,6 +1257,7 @@ fun MainWeatherInfoSection(
                             top.linkTo(weatherStatusPosition.bottom, 20.dp)
 
                         start.linkTo(weatherStatusPosition.start)
+                        baseline.linkTo(weatherStatusPosition.baseline)
                         if (navController.currentDestination?.route != DestinationRoutes.SEARCH_SCREEN.route && navController.currentDestination?.route != DestinationRoutes.SEARCH_SCREEN_DETAILS.route) {
                             bottom.linkTo(parent.bottom, 50.dp)
                         } else if (navController.currentDestination?.route == DestinationRoutes.SEARCH_SCREEN_DETAILS.route)
@@ -1171,25 +1268,55 @@ fun MainWeatherInfoSection(
             Text(
                 text = "feels like ${feelsLike?.roundToInt()}°",
                 style = MaterialTheme.typography.bodyMedium,
-
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.constrainAs(feelsLikeTextPosition) {
-                    top.linkTo(tempTextPosition.bottom)
-
-                    end.linkTo(parent.end, 16.dp)
+                    baseline.linkTo(tempTextPosition.baseline, 26.dp)
+                    start.linkTo(tempTextPosition.start)
+                    end.linkTo(tempTextPosition.end)
                     width = Dimension.fillToConstraints
                 })
-            val formattedDate = LocalDate(year,month,day)
+            val formattedDate = LocalDate(year, month, day)
             val format = LocalDate.Format {
-                dayOfWeek(names = DayOfWeekNames(listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")))
+                dayOfWeek(
+                    names = DayOfWeekNames(
+                        listOf(
+                            "Monday",
+                            "Tuesday",
+                            "Wednesday",
+                            "Thursday",
+                            "Friday",
+                            "Saturday",
+                            "Sunday"
+                        )
+                    )
+                )
                 char(' ')
                 dayOfMonth()
                 char(' ')
-                monthName(names = MonthNames(listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")))
+                monthName(
+                    names = MonthNames(
+                        listOf(
+                            "Jan",
+                            "Feb",
+                            "Mar",
+                            "Apr",
+                            "May",
+                            "Jun",
+                            "Jul",
+                            "Aug",
+                            "Sep",
+                            "Oct",
+                            "Nov",
+                            "Dec"
+                        )
+                    )
+                )
             }
             val today = formattedDate.format(format)
             Text(
                 text = today,
                 style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
                 letterSpacing = TextUnit(1f, TextUnitType.Sp),
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.constrainAs(dateTextPosition) {
@@ -1202,6 +1329,7 @@ fun MainWeatherInfoSection(
                 letterSpacing = TextUnit(0.5f, TextUnitType.Sp),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.constrainAs(locationTextPosition) {
                     top.linkTo(locationIconPosition.bottom)
                     bottom.linkTo(locationIconPosition.top)
@@ -1224,6 +1352,7 @@ fun MainWeatherInfoSection(
                     }
 
                 TextButton(
+                    interactionSource = null,
                     onClick = { showChangeLocationBottomSheet.value = true },
                     modifier = Modifier.constrainAs(changeLocationTextPosition) {
 
@@ -1234,15 +1363,21 @@ fun MainWeatherInfoSection(
                     }) {
                     Text(
                         "Change Location",
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            shadow = Shadow(
+                                color = MaterialTheme.colorScheme.primary,
+                                offset = Offset(0f, 0f),
+                                blurRadius = 12f
+                            )
+                        ),
                         fontWeight = FontWeight.Bold
                     )
-                    Icon(
-                        Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                        contentDescription = "",
-                        modifier = Modifier
-                            .padding(top = 2.dp)
-                            .rotate(90f)
+                    GlowingIcon(
+                        imageVector = painterResource(R.drawable.round_keyboard_arrow_down_24),
+                        contentDescription = null,
+                        glowColor = MaterialTheme.colorScheme.primary,
+                        glowRadius = 5.dp,
+                        iconTint = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -1284,7 +1419,6 @@ fun MainWeatherInfoSection(
 fun AirQualitySection(
     modifier: Modifier,
     activityViewModel: ActivityViewModel,
-    hazeState: HazeState,
     progressValue: Float,
     airQuality: AirQuality? = null,
 ) {
@@ -1352,7 +1486,27 @@ fun AirQualitySection(
         if (it) {
             Column(
                 modifier = modifier
-                    .glassEffect(hazeState = hazeState)
+                    .shadow(elevation = 5.dp, shape = RoundedCornerShape(15.dp))
+                    .clip(RoundedCornerShape(15.dp))
+                    .then(
+                        if (isSystemInDarkTheme())
+                            Modifier
+                                .background(
+                                    brush = Brush.verticalGradient(
+                                        listOf<Color>(
+                                            Color(
+                                                0xFF2a2a2a
+                                            ), Color(0xff1e1e1e)
+                                        )
+                                    )
+                                )
+                                .border(0.5.dp, Color(0xff313131), RoundedCornerShape(15.dp))
+                        else
+                            Modifier
+                                .background(MaterialTheme.colorScheme.surface)
+
+                    )
+
             )
             {
                 Text(
@@ -1363,7 +1517,7 @@ fun AirQualitySection(
                     text = stringResource(R.string.air_quality),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White.copy(0.75f)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(Modifier.height(18.dp))
                 Box(
@@ -1418,62 +1572,66 @@ fun AirQualitySection(
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp),
                     text = airPollutionDetail,
+                    fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
                     color = airPollutionTextColor,
                 )
                 Spacer(Modifier.height(24.dp))
                 Row(
                     Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(
-                        60.dp,
-                        alignment = Alignment.CenterHorizontally
-                    ),
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.SpaceBetween
+                        verticalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.weight(1f)
                     ) {
                         Text(
                             "${airQuality?.co?.roundToInt()}/m³",
-                            style = MaterialTheme.typography.titleLarge
+                            fontSize = 19.sp,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
                             "CO",
-                            color = Color.White.copy(0.5f),
+                            color = MaterialTheme.colorScheme.onSurface.copy(0.4f),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.SpaceBetween
+                        verticalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.weight(1f)
                     ) {
                         Text(
                             "${airQuality?.o3?.roundToInt()}/m³",
-                            style = MaterialTheme.typography.titleLarge
+                            fontSize = 19.sp,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
                             "O3",
-                            color = Color.White.copy(0.5f),
+                            color = MaterialTheme.colorScheme.onSurface.copy(0.4f),
                             style = MaterialTheme.typography.bodyMedium
+
                         )
                     }
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.SpaceBetween
+                        verticalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.weight(1f)
                     ) {
                         Text(
                             "${airQuality?.no2?.roundToInt()}/m³",
-                            style = MaterialTheme.typography.titleLarge
+                            fontSize = 19.sp,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
                             "NO2",
-                            color = Color.White.copy(0.5f),
+                            color = MaterialTheme.colorScheme.onSurface.copy(0.4f),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -1483,54 +1641,57 @@ fun AirQualitySection(
                     Modifier
                         .fillMaxWidth()
                         .padding(bottom = 24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(
-                        70.dp,
-                        alignment = Alignment.CenterHorizontally
-                    ),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.SpaceBetween
+                        verticalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.weight(1f)
                     ) {
                         Text(
                             "${airQuality?.so2?.roundToInt()}/m³",
-                            style = MaterialTheme.typography.titleLarge
+                            fontSize = 19.sp,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
                             "SO2",
-                            color = Color.White.copy(0.5f),
+                            color = MaterialTheme.colorScheme.onSurface.copy(0.4f),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.SpaceBetween
+                        verticalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.weight(1f)
                     ) {
                         Text(
                             "${airQuality?.pm25?.roundToInt()}/m³",
-                            style = MaterialTheme.typography.titleLarge
+                            fontSize = 19.sp,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
                             "pm2.5",
-                            color = Color.White.copy(0.5f),
+                            color = MaterialTheme.colorScheme.onSurface.copy(0.4f),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.SpaceBetween
+                        verticalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.weight(1f)
                     ) {
                         Text(
                             text = "${airQuality?.pm10?.roundToInt()}/m³",
-                            style = MaterialTheme.typography.titleLarge
+                            fontSize = 19.sp,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
                             "pm10",
-                            color = Color.White.copy(0.5f),
+                            color = MaterialTheme.colorScheme.onSurface.copy(0.4f),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -1541,10 +1702,17 @@ fun AirQualitySection(
                 modifier = modifier
                     .fillMaxWidth()
                     .padding(horizontal = 30.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xff313131))
                     .border(
+                        shape = RoundedCornerShape(12.dp),
                         width = 2.dp,
-                        color = Color.White.copy(0.4f),
-                        shape = RoundedCornerShape(20.dp)
+                        brush = Brush.verticalGradient(
+                            listOf(
+                                Color.White.copy(0.5f),
+                                Color.White.copy(0.2f)
+                            )
+                        )
                     ),
                 verticalArrangement = Arrangement.spacedBy(18.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -1724,7 +1892,6 @@ fun AirQualitySection(
 @Composable
 fun AstrosSection(
     modifier: Modifier = Modifier,
-    hazeState: HazeState,
     sunrise: String,
     sunset: String
 ) {
@@ -1738,27 +1905,51 @@ fun AstrosSection(
                 .fillMaxWidth()
                 .height(120.dp)
                 .weight(1f)
-                .glassEffect(hazeState),
+                .shadow(
+                    5.dp,
+                    spotColor = Color.Black,
+                    ambientColor = Color.Black,
+                    shape = RoundedCornerShape(12.dp)
+                )
+                .clip(RoundedCornerShape(15.dp))
+                .then(
+                    if (isSystemInDarkTheme())
+                        Modifier
+                            .background(
+                                brush = Brush.verticalGradient(
+                                    listOf<Color>(
+                                        Color(
+                                            0xFF2a2a2a
+                                        ), Color(0xff1e1e1e)
+                                    )
+                                )
+                            )
+                            .border(0.5.dp, Color(0xff313131), RoundedCornerShape(15.dp))
+                    else
+                        Modifier.background(MaterialTheme.colorScheme.surface)
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceAround
         ) {
             Icon(
+                tint = MaterialTheme.colorScheme.onSurface.copy(0.7f),
                 painter = painterResource(R.drawable.sunset),
                 contentDescription = "sunrise",
                 modifier = Modifier
-                    .padding(8.dp)
+                    .padding(4.dp)
                     .size(40.dp)
             )
             Text(
                 sunrise,
                 letterSpacing = 3.sp,
-                style = MaterialTheme.typography.titleLarge
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             Text(
                 "sunrise",
                 modifier = Modifier.padding(bottom = 8.dp),
-                color = Color.White.copy(0.5f)
+                color = MaterialTheme.colorScheme.onSurface.copy(0.4f)
             )
         }
         Spacer(Modifier.weight(0.2f))
@@ -1767,21 +1958,39 @@ fun AstrosSection(
                 .fillMaxWidth()
                 .height(120.dp)
                 .weight(1f)
-                .glassEffect(hazeState),
+                .shadow(5.dp, shape = RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(15.dp))
+                .then(
+                    if (isSystemInDarkTheme())
+                        Modifier
+                            .background(
+                                brush = Brush.verticalGradient(
+                                    listOf<Color>(
+                                        Color(
+                                            0xFF2a2a2a
+                                        ), Color(0xff1e1e1e)
+                                    )
+                                )
+                            )
+                            .border(0.5.dp, Color(0xff313131), RoundedCornerShape(15.dp))
+                    else
+                        Modifier.background(MaterialTheme.colorScheme.surface)
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceEvenly
         ) {
             Icon(
+                tint = MaterialTheme.colorScheme.onSurface.copy(0.7f),
                 painter = painterResource(R.drawable.moonset),
                 contentDescription = "sunrise",
                 modifier = Modifier
-                    .padding(8.dp)
+                    .padding(4.dp)
                     .size(40.dp)
             )
 
             Text(
                 sunset,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.titleLarge,
                 letterSpacing = 3.sp
             )
@@ -1789,7 +1998,7 @@ fun AstrosSection(
             Text(
                 "sunset",
                 modifier = Modifier.padding(bottom = 8.dp),
-                color = Color.White.copy(0.5f)
+                color = MaterialTheme.colorScheme.onSurface.copy(0.4f)
             )
         }
 
